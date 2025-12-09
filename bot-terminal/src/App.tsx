@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Terminal } from './Terminal';
 import type { LogEntry, BotStats } from './types';
 import { STORAGE_KEYS } from './types';
-import { subscribeToCommands, markCommandProcessed } from './supabase';
+import { subscribeToCommands, markCommandProcessed, saveTrade, updateBalance } from './supabase';
 import type { BotCommand } from './supabase';
 import { sendDiscordReport } from './discord';
 import './index.css';
@@ -165,6 +165,19 @@ function App() {
           balance: stats.balance - tradeAmount
         });
 
+        // Save trade to Supabase
+        saveTrade({
+          type: 'BUY',
+          symbol: stats.symbol,
+          amount: btcAmount,
+          price: currentPrice,
+          total: tradeAmount,
+          reason: `Bot - Probability ${probability.toFixed(1)}%`
+        });
+
+        // Update balance in Supabase
+        updateBalance(stats.balance - tradeAmount);
+
         setStats(prev => ({
           ...prev,
           trades: prev.trades + 1,
@@ -195,6 +208,19 @@ function App() {
             price: currentPrice,
             balance: newBalance
           });
+
+          // Save trade to Supabase
+          saveTrade({
+            type: 'SELL',
+            symbol: stats.symbol,
+            amount: tradeAmount / currentPrice,
+            price: currentPrice,
+            total: tradeAmount,
+            reason: `Bot - Probability ${probability.toFixed(1)}%`
+          });
+
+          // Update balance in Supabase
+          updateBalance(newBalance);
 
           setStats(prev => ({
             ...prev,

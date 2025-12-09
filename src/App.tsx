@@ -14,7 +14,8 @@ import { loadBalance, saveBalance, loadTransactions, saveTransactions } from './
 import { calculateSMA } from './utils/indicators';
 import { TradingBot } from './bot/botEngine';
 import type { BotState, BotConfig } from './bot/botTypes';
-import { sendBotCommand, saveTrade, updateBalance } from './services/supabase';
+import { sendBotCommand, saveTrade, updateBalance, subscribeToTrades } from './services/supabase';
+import type { BotTrade } from './services/supabase';
 
 function App() {
   const [selectedSymbol, setSelectedSymbol] = useState<string>('BTC');
@@ -54,6 +55,32 @@ function App() {
   useEffect(() => {
     saveTransactions(transactions);
   }, [transactions]);
+
+  // Subscribe to bot trades from Supabase (real-time)
+  useEffect(() => {
+    const unsubscribe = subscribeToTrades((trade: BotTrade) => {
+      // Create a new transaction from the bot trade
+      const newTx: Transaction = {
+        id: `bot-${trade.id || Date.now()}`,
+        type: trade.type,
+        symbol: trade.symbol,
+        amount: trade.amount,
+        price: trade.price,
+        total: trade.total,
+        timestamp: new Date(trade.created_at || Date.now())
+      };
+
+      // Add to transactions if not already present
+      setTransactions(prev => {
+        if (prev.some(tx => tx.id === newTx.id)) return prev;
+        return [newTx, ...prev];
+      });
+
+      console.log('🤖 Bot trade received:', trade);
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   // Fetch Historical Data & Subscribe to specific symbol Kline
   useEffect(() => {
