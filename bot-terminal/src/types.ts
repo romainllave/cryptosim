@@ -11,6 +11,11 @@ export interface BotStats {
     trades: number;
     balance: number;
     lastSignal: string;
+    strategies?: {
+        sma: boolean;
+        meanReversion: boolean;
+        momentum: boolean;
+    };
 }
 
 // LocalStorage keys (shared with main trading site)

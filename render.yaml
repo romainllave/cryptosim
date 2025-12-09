@@ -1,0 +1,21 @@
+services:
+  # 1. Le Site Web (Frontend)
+  - type: web
+    name: crypto-sim-frontend
+    env: static
+    buildCommand: npm install && npm run build
+    staticPublishPath: ./dist
+    branch: main
+
+  # 2. Le Bot (Backend Worker)
+  - type: worker
+    name: crypto-sim-bot
+    env: node
+    region: frankfurt
+    plan: free
+    buildCommand: npm install && npm install -D tsx
+    startCommand: npm run bot
+    branch: main
+    envVars:
+      - key: NODE_VERSION
+        value: 20.10.0

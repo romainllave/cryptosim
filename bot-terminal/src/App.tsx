@@ -53,6 +53,10 @@ function App() {
         if (command.symbol) {
           setStats(prev => ({ ...prev, symbol: command.symbol }));
         }
+        if (command.strategies) {
+          setStats(prev => ({ ...prev, strategies: command.strategies }));
+          addLog('info', `🎯 Strategies updated: ${Object.entries(command.strategies!).filter(([_, v]) => v).map(([k]) => k).join(', ')}`);
+        }
         setStats(prev => ({ ...prev, status: 'RUNNING' }));
         addLog('success', `🚀 Bot STARTED on ${command.symbol || 'BTC'}/USDT`);
         addLog('info', 'Analyzing market every 8 seconds...');
@@ -120,20 +124,40 @@ function App() {
       addLog('info', `═══════════════════════════════════════════════════`);
 
       // Strategy 1: SMA Analysis (trend following)
-      const smaTrend = Math.random() * 100;
-      const smaScore = smaTrend;
-      addLog('signal', `  📈 SMA Trend Score: ${smaScore.toFixed(1)}%`);
+      let totalScore = 0;
+      let activeWeight = 0;
+      const strategies = stats.strategies || { sma: true, meanReversion: true, momentum: true };
+
+      let smaScore = 0;
+      let meanRevScore = 0;
+      let momentumScore = 0;
+
+      if (strategies.sma) {
+        const smaTrend = Math.random() * 100;
+        smaScore = smaTrend;
+        addLog('signal', `  📈 SMA Trend Score: ${smaTrend.toFixed(1)}%`);
+        totalScore += smaTrend * 0.3;
+        activeWeight += 0.3;
+      }
 
       // Strategy 2: Mean Reversion (oversold/overbought)
-      const meanRevScore = 30 + Math.random() * 50; // Usually mean-reverts (30-80%)
-      addLog('signal', `  📉 Mean Reversion Score: ${meanRevScore.toFixed(1)}%`);
+      if (strategies.meanReversion) {
+        meanRevScore = 30 + Math.random() * 50;
+        addLog('signal', `  📉 Mean Reversion Score: ${meanRevScore.toFixed(1)}%`);
+        totalScore += meanRevScore * 0.3;
+        activeWeight += 0.3;
+      }
 
       // Strategy 3: Momentum Analysis
-      const momentumScore = Math.random() * 100;
-      addLog('signal', `  🚀 Momentum Score: ${momentumScore.toFixed(1)}%`);
+      if (strategies.momentum) {
+        momentumScore = Math.random() * 100;
+        addLog('signal', `  🚀 Momentum Score: ${momentumScore.toFixed(1)}%`);
+        totalScore += momentumScore * 0.4;
+        activeWeight += 0.4;
+      }
 
-      // Calculate weighted average probability (higher weight to momentum)
-      const probability = (smaScore * 0.3 + meanRevScore * 0.3 + momentumScore * 0.4);
+      // Normalize probability based on active weights
+      const probability = activeWeight > 0 ? totalScore / activeWeight : 0;
 
       addLog('info', '');
       addLog('success', `🎯 PROBABILITY: ${probability.toFixed(1)}% chance of price INCREASE`);

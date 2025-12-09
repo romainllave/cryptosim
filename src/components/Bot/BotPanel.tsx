@@ -1,14 +1,22 @@
 import React from 'react';
-import { Bot, Play, Square, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { Bot, Play, Square, TrendingUp, TrendingDown, Minus, Check } from 'lucide-react';
 import type { BotState, BotConfig, StrategyResult, Signal } from '../../bot/botTypes';
 import { clsx } from 'clsx';
+
+export interface StrategySelection {
+    sma: boolean;
+    meanReversion: boolean;
+    momentum: boolean;
+}
 
 interface BotPanelProps {
     botState: BotState;
     botConfig: BotConfig;
+    strategies: StrategySelection;
     onStart: () => void;
     onStop: () => void;
     onTradeAmountChange: (amount: number) => void;
+    onStrategyChange: (strategies: StrategySelection) => void;
 }
 
 const SignalIcon: React.FC<{ signal: Signal }> = ({ signal }) => {
@@ -41,14 +49,55 @@ const StrategyRow: React.FC<{ result: StrategyResult }> = ({ result }) => {
     );
 };
 
+interface StrategyToggleProps {
+    name: string;
+    emoji: string;
+    enabled: boolean;
+    onToggle: () => void;
+    disabled?: boolean;
+}
+
+const StrategyToggle: React.FC<StrategyToggleProps> = ({ name, emoji, enabled, onToggle, disabled }) => {
+    return (
+        <button
+            onClick={onToggle}
+            disabled={disabled}
+            className={clsx(
+                "flex items-center gap-2 px-3 py-2 rounded-lg border-2 transition-all text-xs font-medium",
+                enabled
+                    ? "border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-500"
+                    : "border-gray-200 bg-gray-50 text-gray-500 dark:bg-[#2a2e39] dark:border-[#363a45] dark:text-gray-400",
+                disabled && "opacity-50 cursor-not-allowed"
+            )}
+        >
+            <span>{emoji}</span>
+            <span>{name}</span>
+            {enabled && <Check size={14} className="text-blue-500" />}
+        </button>
+    );
+};
+
 export const BotPanel: React.FC<BotPanelProps> = ({
     botState,
     botConfig,
+    strategies,
     onStart,
     onStop,
-    onTradeAmountChange
+    onTradeAmountChange,
+    onStrategyChange
 }) => {
     const isRunning = botState.status === 'RUNNING';
+    const enabledCount = Object.values(strategies).filter(Boolean).length;
+
+    const toggleStrategy = (key: keyof StrategySelection) => {
+        // Don't allow disabling if it's the last enabled strategy
+        if (strategies[key] && enabledCount <= 1) return;
+
+        onStrategyChange({
+            ...strategies,
+            [key]: !strategies[key]
+        });
+    };
 
     return (
         <div className="p-4 border-t border-border dark:border-[#2a2e39]">
@@ -62,6 +111,36 @@ export const BotPanel: React.FC<BotPanelProps> = ({
                     "w-3 h-3 rounded-full",
                     isRunning ? "bg-green-500 animate-pulse" : "bg-gray-400"
                 )} />
+            </div>
+
+            {/* Strategy Selection */}
+            <div className="mb-4">
+                <h4 className="text-xs font-semibold text-text-secondary mb-2 dark:text-[#787b86]">
+                    Stratégies actives ({enabledCount}/3)
+                </h4>
+                <div className="flex flex-wrap gap-2">
+                    <StrategyToggle
+                        name="SMA"
+                        emoji="📈"
+                        enabled={strategies.sma}
+                        onToggle={() => toggleStrategy('sma')}
+                        disabled={isRunning}
+                    />
+                    <StrategyToggle
+                        name="Mean Rev"
+                        emoji="📉"
+                        enabled={strategies.meanReversion}
+                        onToggle={() => toggleStrategy('meanReversion')}
+                        disabled={isRunning}
+                    />
+                    <StrategyToggle
+                        name="Momentum"
+                        emoji="🚀"
+                        enabled={strategies.momentum}
+                        onToggle={() => toggleStrategy('momentum')}
+                        disabled={isRunning}
+                    />
+                </div>
             </div>
 
             {/* Control Button */}
@@ -147,3 +226,4 @@ export const BotPanel: React.FC<BotPanelProps> = ({
         </div>
     );
 };
+

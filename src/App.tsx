@@ -4,6 +4,7 @@ import { TVChart } from './components/Chart/TVChart';
 import { TransactionHistory } from './components/History/TransactionHistory';
 import { TradePanel } from './components/Trading/TradePanel';
 import { BotPanel } from './components/Bot/BotPanel';
+import type { StrategySelection } from './components/Bot/BotPanel';
 import type { Crypto, Transaction } from './types';
 import { MOCK_CRYPTOS } from './types';
 import type { CandleData } from './utils/chartData';
@@ -30,6 +31,11 @@ function App() {
   const botRef = useRef<TradingBot>(new TradingBot({ tradeAmount: 0.001, symbol: 'BTC' }));
   const [botState, setBotState] = useState<BotState>(botRef.current.getState());
   const [botConfig, setBotConfig] = useState<BotConfig>(botRef.current.getConfig());
+  const [strategies, setStrategies] = useState<StrategySelection>({
+    sma: true,
+    meanReversion: true,
+    momentum: true
+  });
 
   const smaData = useMemo(() => {
     if (!showSMA) return [];
@@ -202,11 +208,12 @@ function App() {
     setBotState(botRef.current.getState());
     setBotConfig(botRef.current.getConfig());
     // Send command via Supabase
-    sendBotCommand('start', selectedSymbol).catch(console.error);
+    sendBotCommand('start', selectedSymbol, strategies).catch(console.error);
     // Also keep localStorage for local terminal
     localStorage.setItem('bot-terminal-command', JSON.stringify({
       command: 'start',
       symbol: selectedSymbol,
+      strategies,
       timestamp: Date.now()
     }));
   };
@@ -328,9 +335,11 @@ function App() {
           <BotPanel
             botState={botState}
             botConfig={botConfig}
+            strategies={strategies}
             onStart={handleBotStart}
             onStop={handleBotStop}
             onTradeAmountChange={handleBotTradeAmountChange}
+            onStrategyChange={setStrategies}
           />
         </div>
       </div>

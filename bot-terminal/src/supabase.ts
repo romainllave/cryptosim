@@ -10,6 +10,11 @@ export interface BotCommand {
     id?: number;
     command: 'start' | 'stop';
     symbol: string;
+    strategies?: {
+        sma: boolean;
+        meanReversion: boolean;
+        momentum: boolean;
+    };
     created_at?: string;
     processed?: boolean;
 }

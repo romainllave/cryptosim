@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS bot_commands (
     id BIGSERIAL PRIMARY KEY,
     command TEXT NOT NULL CHECK (command IN ('start', 'stop')),
     symbol TEXT NOT NULL DEFAULT 'BTC',
+    strategies JSONB DEFAULT '{"sma": true, "meanReversion": true, "momentum": true}'::jsonb,
     processed BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );

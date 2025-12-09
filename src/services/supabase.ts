@@ -10,6 +10,11 @@ export interface BotCommand {
     id?: number;
     command: 'start' | 'stop';
     symbol: string;
+    strategies?: {
+        sma: boolean;
+        meanReversion: boolean;
+        momentum: boolean;
+    };
     created_at?: string;
     processed?: boolean;
 }
@@ -32,10 +37,19 @@ export interface Portfolio {
 }
 
 // Bot Commands
-export async function sendBotCommand(command: 'start' | 'stop', symbol: string): Promise<void> {
+export async function sendBotCommand(
+    command: 'start' | 'stop',
+    symbol: string,
+    strategies?: { sma: boolean; meanReversion: boolean; momentum: boolean; }
+): Promise<void> {
     const { error } = await supabase
         .from('bot_commands')
-        .insert({ command, symbol, processed: false });
+        .insert({
+            command,
+            symbol,
+            strategies,
+            processed: false
+        });
 
     if (error) {
         console.error('Error sending bot command:', error);
