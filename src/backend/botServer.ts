@@ -22,7 +22,7 @@ const INTERVAL = '1m';
 const PORT = process.env.PORT || 3000;
 
 // Dummy HTTP Server for Render "Web Service" requirement
-const server = http.createServer((req, res) => {
+const server = http.createServer((_req, res) => {
     res.writeHead(200);
     res.end('Bot Server is Running');
 });
