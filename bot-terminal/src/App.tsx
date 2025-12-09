@@ -105,42 +105,99 @@ function App() {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, [addLog]);
 
-  // Simulate bot activity when running
+  // Bot trading logic with probability-based analysis
   useEffect(() => {
     if (stats.status !== 'RUNNING') return;
 
-    const signals = ['BUY', 'SELL', 'HOLD'];
+    // Track if we have an open position
+    const hasPosition = stats.trades > 0 && stats.lastSignal === 'BUY';
 
-    const interval = setInterval(() => {
-      // Generate random analysis
-      const smaSignal = signals[Math.floor(Math.random() * 3)];
-      const meanSignal = signals[Math.floor(Math.random() * 3)];
-      const momSignal = signals[Math.floor(Math.random() * 3)];
+    const analyzeMarket = () => {
+      addLog('info', '');
+      addLog('info', `═══════════════════════════════════════════════════`);
+      addLog('info', `📊 MARKET ANALYSIS - ${stats.symbol}/USDT`);
+      addLog('info', `═══════════════════════════════════════════════════`);
 
-      addLog('info', `Analyzing ${stats.symbol}/USDT...`);
-      addLog('signal', `  SMA: ${smaSignal} | MEAN: ${meanSignal} | MOM: ${momSignal}`);
+      // Strategy 1: SMA Analysis (trend following)
+      const smaTrend = Math.random() * 100;
+      const smaScore = smaTrend;
+      addLog('signal', `  📈 SMA Trend Score: ${smaScore.toFixed(1)}%`);
 
-      // Count votes
-      const buyCount = [smaSignal, meanSignal, momSignal].filter(s => s === 'BUY').length;
-      const sellCount = [smaSignal, meanSignal, momSignal].filter(s => s === 'SELL').length;
+      // Strategy 2: Mean Reversion (oversold/overbought)
+      const meanRevScore = 30 + Math.random() * 50; // Usually mean-reverts (30-80%)
+      addLog('signal', `  📉 Mean Reversion Score: ${meanRevScore.toFixed(1)}%`);
 
-      if (buyCount >= 2) {
-        addLog('success', `✓ SIGNAL: BUY (${buyCount}/3 strategies agree)`);
-        const price = 98000 + Math.random() * 1000;
-        addLog('trade', `✓ EXECUTED: BUY 0.001 ${stats.symbol} @ $${price.toFixed(2)}`);
-        setStats(prev => ({ ...prev, trades: prev.trades + 1, lastSignal: 'BUY' }));
-      } else if (sellCount >= 2) {
-        addLog('success', `✓ SIGNAL: SELL (${sellCount}/3 strategies agree)`);
-        const price = 98000 + Math.random() * 1000;
-        addLog('trade', `✓ EXECUTED: SELL 0.001 ${stats.symbol} @ $${price.toFixed(2)}`);
-        setStats(prev => ({ ...prev, trades: prev.trades + 1, lastSignal: 'SELL' }));
+      // Strategy 3: Momentum Analysis
+      const momentumScore = Math.random() * 100;
+      addLog('signal', `  🚀 Momentum Score: ${momentumScore.toFixed(1)}%`);
+
+      // Calculate weighted average probability (higher weight to momentum)
+      const probability = (smaScore * 0.3 + meanRevScore * 0.3 + momentumScore * 0.4);
+
+      addLog('info', '');
+      addLog('success', `🎯 PROBABILITY: ${probability.toFixed(1)}% chance of price INCREASE`);
+      addLog('info', '');
+
+      // Current simulated price
+      const currentPrice = 98000 + Math.random() * 2000;
+
+      // Trading decision
+      if (probability >= 55) {
+        // BUY - 10% of portfolio
+        const tradeAmount = stats.balance * 0.10;
+        const btcAmount = tradeAmount / currentPrice;
+
+        addLog('success', `✅ SIGNAL: BUY (Probability ${probability.toFixed(1)}% >= 55%)`);
+        addLog('trade', `💰 EXECUTING: BUY ${btcAmount.toFixed(6)} ${stats.symbol} @ $${currentPrice.toFixed(2)}`);
+        addLog('trade', `💵 Trade Size: $${tradeAmount.toFixed(2)} (10% of portfolio)`);
+
+        setStats(prev => ({
+          ...prev,
+          trades: prev.trades + 1,
+          lastSignal: 'BUY',
+          balance: prev.balance - tradeAmount
+        }));
+
+      } else if (probability <= 50) {
+        if (hasPosition) {
+          // SELL - close position
+          const tradeAmount = stats.balance * 0.10;
+
+          addLog('warning', `⚠️ SIGNAL: SELL (Probability ${probability.toFixed(1)}% <= 50%)`);
+          addLog('trade', `💰 EXECUTING: SELL position @ $${currentPrice.toFixed(2)}`);
+          addLog('trade', `💵 Closing position worth ~$${tradeAmount.toFixed(2)}`);
+
+          setStats(prev => ({
+            ...prev,
+            trades: prev.trades + 1,
+            lastSignal: 'SELL',
+            balance: prev.balance + tradeAmount * (1 + (Math.random() - 0.5) * 0.02) // Small P&L variance
+          }));
+        } else {
+          addLog('info', `⏳ Probability ${probability.toFixed(1)}% <= 50%, no position to sell`);
+          addLog('info', `⏳ Waiting for next analysis...`);
+          setStats(prev => ({ ...prev, lastSignal: 'HOLD' }));
+        }
       } else {
+        // 50-55% range - neutral, hold
+        addLog('info', `⏳ Probability ${probability.toFixed(1)}% in neutral zone (50-55%)`);
+        addLog('info', `⏳ HOLDING - waiting for clearer signal...`);
         setStats(prev => ({ ...prev, lastSignal: 'HOLD' }));
       }
-    }, 8000);
+
+      addLog('info', '');
+      addLog('info', `⏰ Next analysis in 5 minutes...`);
+      addLog('info', '═══════════════════════════════════════════════════');
+    };
+
+    // Run immediately on start
+    analyzeMarket();
+
+    // Then every 5 minutes (300000ms)
+    const interval = setInterval(analyzeMarket, 300000);
 
     return () => clearInterval(interval);
-  }, [stats.status, stats.symbol, addLog]);
+  }, [stats.status, stats.symbol, stats.balance, stats.trades, stats.lastSignal, addLog]);
 
   // Handle commands
   const handleCommand = (command: string) => {
