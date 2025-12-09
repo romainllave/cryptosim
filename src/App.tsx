@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { CryptoList } from './components/Sidebar/CryptoList';
 import { TVChart } from './components/Chart/TVChart';
 import { TransactionHistory } from './components/History/TransactionHistory';
 import { TradePanel } from './components/Trading/TradePanel';
+import { BotPanel } from './components/Bot/BotPanel';
 import type { Crypto, Transaction } from './types';
 import { MOCK_CRYPTOS } from './types';
 import type { CandleData } from './utils/chartData';
@@ -11,7 +12,8 @@ import { clsx } from 'clsx';
 import { fetchKlines, subscribeToTickers, subscribeToKline } from './services/binance';
 import { loadBalance, saveBalance, loadTransactions, saveTransactions } from './services/storage';
 import { calculateSMA } from './utils/indicators';
-import { useMemo } from 'react';
+import { TradingBot } from './bot/botEngine';
+import type { BotState, BotConfig } from './bot/botTypes';
 
 function App() {
   const [selectedSymbol, setSelectedSymbol] = useState<string>('BTC');
@@ -21,6 +23,11 @@ function App() {
   const [balance, setBalance] = useState<number>(() => loadBalance());
   const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
   const [showSMA, setShowSMA] = useState<boolean>(false);
+
+  // Bot state
+  const botRef = useRef<TradingBot>(new TradingBot({ tradeAmount: 0.001, symbol: 'BTC' }));
+  const [botState, setBotState] = useState<BotState>(botRef.current.getState());
+  const [botConfig, setBotConfig] = useState<BotConfig>(botRef.current.getConfig());
 
   const smaData = useMemo(() => {
     if (!showSMA) return [];
@@ -95,13 +102,13 @@ function App() {
     }
   }, []); // Run once on mount (or when crypto list structure changes)
 
-  const handleTrade = (type: 'BUY' | 'SELL', amount: number) => {
+  const handleTrade = (type: 'BUY' | 'SELL', amount: number, reason?: string) => {
     const price = selectedCrypto.price;
     const total = amount * price;
 
     if (type === 'BUY') {
       if (total > balance) {
-        alert("Insufficient funds!");
+        if (!reason) alert("Insufficient funds!");
         return;
       }
       setBalance(b => b - total);
@@ -110,7 +117,7 @@ function App() {
     }
 
     const newTx: Transaction = {
-      id: Date.now().toString(),
+      id: Date.now().toString() + (reason ? '-bot' : ''),
       type,
       symbol: selectedSymbol,
       amount,
@@ -120,6 +127,56 @@ function App() {
     };
 
     setTransactions(prev => [newTx, ...prev]);
+  };
+
+  // Bot trade callback setup
+  useEffect(() => {
+    botRef.current.setTradeCallback((type, amount, reason) => {
+      handleTrade(type, amount, reason);
+    });
+  }, [selectedCrypto.price, balance]);
+
+  // Bot analysis effect
+  useEffect(() => {
+    if (!botState.status || botState.status !== 'RUNNING') return;
+
+    const interval = setInterval(() => {
+      botRef.current.analyze(candleData);
+      setBotState(botRef.current.getState());
+    }, 5000); // Analyze every 5 seconds
+
+    return () => clearInterval(interval);
+  }, [candleData, botState.status]);
+
+  const handleBotStart = () => {
+    botRef.current.setSymbol(selectedSymbol);
+    botRef.current.start();
+    // Run immediate analysis to show signals right away
+    botRef.current.analyze(candleData);
+    setBotState(botRef.current.getState());
+    setBotConfig(botRef.current.getConfig());
+    // Send command to terminal via localStorage
+    localStorage.setItem('bot-terminal-command', JSON.stringify({
+      command: 'start',
+      symbol: selectedSymbol,
+      timestamp: Date.now()
+    }));
+  };
+
+  const handleBotStop = () => {
+    botRef.current.stop();
+    setBotState(botRef.current.getState());
+    setBotConfig(botRef.current.getConfig());
+    // Send command to terminal via localStorage
+    localStorage.setItem('bot-terminal-command', JSON.stringify({
+      command: 'stop',
+      timestamp: Date.now()
+    }));
+  };
+
+  const handleBotTradeAmountChange = (amount: number) => {
+    botRef.current.setTradeAmount(amount);
+    setBotConfig(botRef.current.getConfig());
   };
 
   return (
@@ -212,11 +269,18 @@ function App() {
         </div>
 
         {/* Right Panel */}
-        <div className="w-72 flex-none bg-white rounded-xl border border-border overflow-hidden shadow-sm dark:bg-[#1e222d] dark:border-[#2a2e39]">
+        <div className="w-72 flex-none bg-white rounded-xl border border-border overflow-hidden shadow-sm dark:bg-[#1e222d] dark:border-[#2a2e39] flex flex-col">
           <TradePanel
             crypto={selectedCrypto}
             balance={balance}
             onTrade={handleTrade}
+          />
+          <BotPanel
+            botState={botState}
+            botConfig={botConfig}
+            onStart={handleBotStart}
+            onStop={handleBotStop}
+            onTradeAmountChange={handleBotTradeAmountChange}
           />
         </div>
       </div>

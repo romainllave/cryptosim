@@ -6,14 +6,16 @@ export interface CandleData {
     close: number;
 }
 
-export function generateInitialData(count: number = 100, startPrice: number = 50000): CandleData[] {
+export function generateInitialData(count: number = 1440, startPrice: number = 50000): CandleData[] {
+    // 1440 candles with 15-minute intervals = 15 days of data
     const data: CandleData[] = [];
     let currentPrice = startPrice;
     const now = new Date();
-    const startTime = new Date(now.getTime() - count * 60 * 1000).getTime() / 1000; // start 'count' minutes ago
+    const intervalSeconds = 15 * 60; // 15 minutes per candle
+    const startTime = new Date(now.getTime() - count * intervalSeconds * 1000).getTime() / 1000;
 
     for (let i = 0; i < count; i++) {
-        const time = startTime + i * 60;
+        const time = startTime + i * intervalSeconds;
         const volatility = currentPrice * 0.002;
         const change = (Math.random() - 0.5) * volatility;
         const open = currentPrice;
@@ -35,7 +37,8 @@ export function generateInitialData(count: number = 100, startPrice: number = 50
 }
 
 export function generateNextCandle(lastCandle: CandleData): CandleData {
-    const time = (lastCandle.time as number) + 60;
+    const intervalSeconds = 15 * 60; // 15 minutes per candle
+    const time = (lastCandle.time as number) + intervalSeconds;
     const currentPrice = lastCandle.close;
     const volatility = currentPrice * 0.002;
     const change = (Math.random() - 0.5) * volatility;
