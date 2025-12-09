@@ -11,7 +11,6 @@ import { clsx } from 'clsx';
 import { fetchKlines, subscribeToTickers, subscribeToKline } from './services/binance';
 import { loadBalance, saveBalance, loadTransactions, saveTransactions } from './services/storage';
 import { calculateSMA } from './utils/indicators';
-import type { LineData } from './utils/indicators';
 import { useMemo } from 'react';
 
 function App() {

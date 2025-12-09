@@ -16,7 +16,7 @@ export const calculateSMA = (data: CandleData[], period: number): LineData[] => 
         const avg = sum / period;
 
         result.push({
-            time: data[i].time as string, // Cast to string assuming CandleData time is string
+            time: data[i].time as unknown as string, // Cast to string assuming CandleData time is string
             value: avg
         });
     }

@@ -20,7 +20,7 @@ interface TVChartProps {
 
 export const TVChart: React.FC<TVChartProps> = ({ data, indicators, colors = {} }) => {
     const chartContainerRef = useRef<HTMLDivElement>(null);
-    const chartRef = useRef<IChartApi<Time> | null>(null);
+    const chartRef = useRef<IChartApi | null>(null);
     const seriesRef = useRef<ISeriesApi<"Candlestick", Time> | null>(null);
     const smaSeriesRef = useRef<ISeriesApi<"Line", Time> | null>(null);
 
@@ -72,7 +72,7 @@ export const TVChart: React.FC<TVChartProps> = ({ data, indicators, colors = {} 
                 smaSeries.setData(indicators.sma.map(d => ({ ...d, time: d.time as Time })));
             }
 
-            chartRef.current = chart as IChartApi<Time>;
+            chartRef.current = chart as IChartApi;
             seriesRef.current = newSeries;
             smaSeriesRef.current = smaSeries;
 
