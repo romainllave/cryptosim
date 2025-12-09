@@ -82,7 +82,6 @@ function App() {
   useEffect(() => {
     if (stats.status !== 'RUNNING') return;
 
-    const strategies = ['SMA Crossover', 'Mean Reversion', 'Momentum'];
     const signals = ['BUY', 'SELL', 'HOLD'];
 
     const interval = setInterval(() => {
