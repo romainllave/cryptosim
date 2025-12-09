@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import WebSocket from 'ws';
+import http from 'http';
 
 // Polyfill WebSocket for Node.js environment (required for binance service)
 // @ts-ignore
@@ -18,6 +19,17 @@ import type { CandleData } from '../utils/chartData';
 // Configuration
 const SYMBOL = 'BTC';
 const INTERVAL = '1m';
+const PORT = process.env.PORT || 3000;
+
+// Dummy HTTP Server for Render "Web Service" requirement
+const server = http.createServer((req, res) => {
+    res.writeHead(200);
+    res.end('Bot Server is Running');
+});
+
+server.listen(PORT, () => {
+    console.log(`🌍 HTTP Server listening on port ${PORT}`);
+});
 
 async function main() {
     console.log('🚀 Starting Bot Server...');

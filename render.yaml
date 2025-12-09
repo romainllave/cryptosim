@@ -8,7 +8,7 @@ services:
     branch: main
 
   # 2. Le Bot (Backend Worker)
-  - type: worker
+  - type: web
     name: crypto-sim-bot
     env: node
     region: frankfurt
@@ -16,6 +16,7 @@ services:
     buildCommand: npm install && npm install -D tsx
     startCommand: npm run bot
     branch: main
+    healthCheckPath: /
     envVars:
       - key: NODE_VERSION
         value: 20.10.0
