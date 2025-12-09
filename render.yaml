@@ -20,3 +20,11 @@ services:
     envVars:
       - key: NODE_VERSION
         value: 20.10.0
+
+  # 3. Le Terminal Bot (Interface Séparée)
+  - type: web
+    name: cryptosim-bot-terminal
+    env: static
+    buildCommand: cd bot-terminal && npm install && npm run build
+    staticPublishPath: ./bot-terminal/dist
+    branch: main
