@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { Terminal } from './Terminal';
 import type { LogEntry, BotStats } from './types';
 import { STORAGE_KEYS } from './types';
+import { subscribeToCommands, markCommandProcessed } from './supabase';
+import type { BotCommand } from './supabase';
 import './index.css';
 
 function App() {
@@ -40,6 +42,31 @@ function App() {
     addLog('info', 'Type "start" to start the bot');
     addLog('info', '');
   }, []);
+
+  // Subscribe to Supabase commands from trading site
+  useEffect(() => {
+    const unsubscribe = subscribeToCommands((command: BotCommand) => {
+      if (command.command === 'start' && !command.processed) {
+        addLog('info', '');
+        addLog('success', '📡 [SUPABASE] Command received: START');
+        if (command.symbol) {
+          setStats(prev => ({ ...prev, symbol: command.symbol }));
+        }
+        setStats(prev => ({ ...prev, status: 'RUNNING' }));
+        addLog('success', `🚀 Bot STARTED on ${command.symbol || 'BTC'}/USDT`);
+        addLog('info', 'Analyzing market every 8 seconds...');
+        markCommandProcessed(command.id!);
+      } else if (command.command === 'stop' && !command.processed) {
+        addLog('info', '');
+        addLog('warning', '📡 [SUPABASE] Command received: STOP');
+        setStats(prev => ({ ...prev, status: 'IDLE' }));
+        addLog('warning', '⏹️ Bot STOPPED');
+        markCommandProcessed(command.id!);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [addLog]);
 
   // Listen for storage changes from main trading site
   useEffect(() => {

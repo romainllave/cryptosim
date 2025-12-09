@@ -14,6 +14,7 @@ import { loadBalance, saveBalance, loadTransactions, saveTransactions } from './
 import { calculateSMA } from './utils/indicators';
 import { TradingBot } from './bot/botEngine';
 import type { BotState, BotConfig } from './bot/botTypes';
+import { sendBotCommand, saveTrade, updateBalance } from './services/supabase';
 
 function App() {
   const [selectedSymbol, setSelectedSymbol] = useState<string>('BTC');
@@ -111,9 +112,17 @@ function App() {
         if (!reason) alert("Insufficient funds!");
         return;
       }
-      setBalance(b => b - total);
+      setBalance(b => {
+        const newBalance = b - total;
+        updateBalance(newBalance).catch(console.error);
+        return newBalance;
+      });
     } else {
-      setBalance(b => b + total);
+      setBalance(b => {
+        const newBalance = b + total;
+        updateBalance(newBalance).catch(console.error);
+        return newBalance;
+      });
     }
 
     const newTx: Transaction = {
@@ -127,6 +136,16 @@ function App() {
     };
 
     setTransactions(prev => [newTx, ...prev]);
+
+    // Save trade to Supabase
+    saveTrade({
+      type,
+      symbol: selectedSymbol,
+      amount,
+      price,
+      total,
+      reason: reason || 'Manual trade'
+    }).catch(console.error);
   };
 
   // Bot trade callback setup
@@ -155,7 +174,9 @@ function App() {
     botRef.current.analyze(candleData);
     setBotState(botRef.current.getState());
     setBotConfig(botRef.current.getConfig());
-    // Send command to terminal via localStorage
+    // Send command via Supabase
+    sendBotCommand('start', selectedSymbol).catch(console.error);
+    // Also keep localStorage for local terminal
     localStorage.setItem('bot-terminal-command', JSON.stringify({
       command: 'start',
       symbol: selectedSymbol,
@@ -167,7 +188,9 @@ function App() {
     botRef.current.stop();
     setBotState(botRef.current.getState());
     setBotConfig(botRef.current.getConfig());
-    // Send command to terminal via localStorage
+    // Send command via Supabase
+    sendBotCommand('stop', selectedSymbol).catch(console.error);
+    // Also keep localStorage for local terminal
     localStorage.setItem('bot-terminal-command', JSON.stringify({
       command: 'stop',
       timestamp: Date.now()
