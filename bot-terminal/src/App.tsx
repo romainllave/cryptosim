@@ -4,6 +4,7 @@ import type { LogEntry, BotStats } from './types';
 import { STORAGE_KEYS } from './types';
 import { subscribeToCommands, markCommandProcessed } from './supabase';
 import type { BotCommand } from './supabase';
+import { sendDiscordReport } from './discord';
 import './index.css';
 
 function App() {
@@ -151,6 +152,19 @@ function App() {
         addLog('trade', `💰 EXECUTING: BUY ${btcAmount.toFixed(6)} ${stats.symbol} @ $${currentPrice.toFixed(2)}`);
         addLog('trade', `💵 Trade Size: $${tradeAmount.toFixed(2)} (10% of portfolio)`);
 
+        // Send Discord notification
+        sendDiscordReport({
+          symbol: stats.symbol,
+          smaScore,
+          meanRevScore,
+          momentumScore,
+          probability,
+          action: 'BUY',
+          tradeAmount,
+          price: currentPrice,
+          balance: stats.balance - tradeAmount
+        });
+
         setStats(prev => ({
           ...prev,
           trades: prev.trades + 1,
@@ -167,21 +181,60 @@ function App() {
           addLog('trade', `💰 EXECUTING: SELL position @ $${currentPrice.toFixed(2)}`);
           addLog('trade', `💵 Closing position worth ~$${tradeAmount.toFixed(2)}`);
 
+          const newBalance = stats.balance + tradeAmount * (1 + (Math.random() - 0.5) * 0.02);
+
+          // Send Discord notification
+          sendDiscordReport({
+            symbol: stats.symbol,
+            smaScore,
+            meanRevScore,
+            momentumScore,
+            probability,
+            action: 'SELL',
+            tradeAmount,
+            price: currentPrice,
+            balance: newBalance
+          });
+
           setStats(prev => ({
             ...prev,
             trades: prev.trades + 1,
             lastSignal: 'SELL',
-            balance: prev.balance + tradeAmount * (1 + (Math.random() - 0.5) * 0.02) // Small P&L variance
+            balance: newBalance
           }));
         } else {
           addLog('info', `⏳ Probability ${probability.toFixed(1)}% <= 50%, no position to sell`);
           addLog('info', `⏳ Waiting for next analysis...`);
+
+          // Send Discord notification for HOLD
+          sendDiscordReport({
+            symbol: stats.symbol,
+            smaScore,
+            meanRevScore,
+            momentumScore,
+            probability,
+            action: 'HOLD',
+            balance: stats.balance
+          });
+
           setStats(prev => ({ ...prev, lastSignal: 'HOLD' }));
         }
       } else {
         // 50-55% range - neutral, hold
         addLog('info', `⏳ Probability ${probability.toFixed(1)}% in neutral zone (50-55%)`);
         addLog('info', `⏳ HOLDING - waiting for clearer signal...`);
+
+        // Send Discord notification for HOLD
+        sendDiscordReport({
+          symbol: stats.symbol,
+          smaScore,
+          meanRevScore,
+          momentumScore,
+          probability,
+          action: 'HOLD',
+          balance: stats.balance
+        });
+
         setStats(prev => ({ ...prev, lastSignal: 'HOLD' }));
       }
 
