@@ -52,7 +52,7 @@ export async function sendBotCommand(
         });
 
     if (error) {
-        console.error('Error sending bot command:', error);
+        console.error('Error sending bot command:', error.message, error.details, error.hint);
         throw error;
     }
 }
@@ -186,6 +186,50 @@ export function subscribeToBalance(callback: (balance: number) => void) {
             }
         )
         .subscribe();
+
+    return () => {
+        supabase.removeChannel(channel);
+    };
+}
+// Bot Status
+export async function updateBotStatus(status: 'IDLE' | 'RUNNING', symbol: string): Promise<void> {
+    const { error } = await supabase
+        .from('bot_status')
+        .upsert({
+            id: 1,
+            status,
+            symbol,
+            updated_at: new Date().toISOString()
+        });
+
+    if (error) {
+        console.error('Error updating bot status:', error);
+    }
+}
+
+export function subscribeToBotStatus(callback: (status: { status: 'IDLE' | 'RUNNING', symbol: string }) => void) {
+    const channel = supabase
+        .channel('bot-status')
+        .on(
+            'postgres_changes',
+            { event: '*', schema: 'public', table: 'bot_status' },
+            (payload) => {
+                const newData = payload.new as { status: 'IDLE' | 'RUNNING', symbol: string };
+                if (newData) {
+                    callback(newData);
+                }
+            }
+        )
+        .subscribe();
+
+    // Also fetch initial state
+    supabase
+        .from('bot_status')
+        .select('*')
+        .single()
+        .then(({ data }) => {
+            if (data) callback(data as any);
+        });
 
     return () => {
         supabase.removeChannel(channel);

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { CryptoList } from './components/Sidebar/CryptoList';
 import { TVChart } from './components/Chart/TVChart';
 import { TransactionHistory } from './components/History/TransactionHistory';
@@ -13,24 +13,42 @@ import { clsx } from 'clsx';
 import { fetchKlines, subscribeToTickers, subscribeToKline } from './services/binance';
 import { loadBalance, saveBalance, loadTransactions, saveTransactions } from './services/storage';
 import { calculateSMA } from './utils/indicators';
-import { TradingBot } from './bot/botEngine';
 import type { BotState, BotConfig } from './bot/botTypes';
-import { sendBotCommand, saveTrade, updateBalance, subscribeToTrades } from './services/supabase';
+import {
+  sendBotCommand,
+  saveTrade,
+  updateBalance,
+  subscribeToTrades,
+  subscribeToBotStatus
+} from './services/supabase';
 import type { BotTrade } from './services/supabase';
 
 function App() {
   const [selectedSymbol, setSelectedSymbol] = useState<string>('BTC');
-  const [cryptos, setCryptos] = useState<Crypto[]>(MOCK_CRYPTOS); // Start with mock, update with real
+  const [cryptos, setCryptos] = useState<Crypto[]>(MOCK_CRYPTOS);
   const [candleData, setCandleData] = useState<CandleData[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>(() => loadTransactions());
   const [balance, setBalance] = useState<number>(() => loadBalance());
   const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
   const [showSMA, setShowSMA] = useState<boolean>(false);
 
-  // Bot state
-  const botRef = useRef<TradingBot>(new TradingBot({ tradeAmount: 0.001, symbol: 'BTC' }));
-  const [botState, setBotState] = useState<BotState>(botRef.current.getState());
-  const [botConfig, setBotConfig] = useState<BotConfig>(botRef.current.getConfig());
+  // Bot state (Synced with Supabase)
+  const [botState, setBotState] = useState<BotState>({
+    status: 'IDLE',
+    lastAnalysis: [],
+    lastSignal: 'HOLD',
+    tradesCount: 0,
+    profitLoss: 0,
+    lastTradeTime: null
+  });
+
+  const [botConfig, setBotConfig] = useState<BotConfig>({
+    tradeAmount: 0.001,
+    symbol: 'BTC',
+    enabled: false,
+    strategies: { sma: true, meanReversion: true, momentum: true }
+  });
+
   const [strategies, setStrategies] = useState<StrategySelection>({
     sma: true,
     meanReversion: true,
@@ -62,6 +80,27 @@ function App() {
     saveTransactions(transactions);
   }, [transactions]);
 
+  // Subscribe to Bot Status from Supabase
+  useEffect(() => {
+    const unsubscribe = subscribeToBotStatus((data) => {
+      console.log('🤖 Bot Status Update:', data);
+      setBotState(prev => ({
+        ...prev,
+        status: data.status,
+      }));
+      // If running, we assume it's running on the symbol reported
+      if (data.status === 'RUNNING' && data.symbol) {
+        // Optionally update selected symbol if we want to follow the bot
+        // setSelectedSymbol(data.symbol); 
+        // For now, let's just keep the config in sync
+        setBotConfig(prev => ({ ...prev, symbol: data.symbol, enabled: true }));
+      } else {
+        setBotConfig(prev => ({ ...prev, enabled: false }));
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
   // Subscribe to bot trades from Supabase (real-time)
   useEffect(() => {
     const unsubscribe = subscribeToTrades((trade: BotTrade) => {
@@ -81,6 +120,14 @@ function App() {
         if (prev.some(tx => tx.id === newTx.id)) return prev;
         return [newTx, ...prev];
       });
+
+      // Update stats based on trades
+      setBotState(prev => ({
+        ...prev,
+        tradesCount: prev.tradesCount + 1,
+        lastTradeTime: newTx.timestamp,
+        // Approximate P/L calculation could be done here if we tracked open positions
+      }));
 
       console.log('🤖 Bot trade received:', trade);
     });
@@ -134,7 +181,7 @@ function App() {
     return () => {
       unsubscribeTickers();
     }
-  }, []); // Run once on mount (or when crypto list structure changes)
+  }, []);
 
   const handleTrade = (type: 'BUY' | 'SELL', amount: number, reason?: string) => {
     const price = selectedCrypto.price;
@@ -181,59 +228,26 @@ function App() {
     }).catch(console.error);
   };
 
-  // Bot trade callback setup
-  useEffect(() => {
-    botRef.current.setTradeCallback((type, amount, reason) => {
-      handleTrade(type, amount, reason);
-    });
-  }, [selectedCrypto.price, balance]);
-
-  // Bot analysis effect
-  useEffect(() => {
-    if (!botState.status || botState.status !== 'RUNNING') return;
-
-    const interval = setInterval(() => {
-      botRef.current.analyze(candleData);
-      setBotState(botRef.current.getState());
-    }, 5000); // Analyze every 5 seconds
-
-    return () => clearInterval(interval);
-  }, [candleData, botState.status]);
-
   const handleBotStart = () => {
-    botRef.current.setSymbol(selectedSymbol);
-    botRef.current.start();
-    // Run immediate analysis to show signals right away
-    botRef.current.analyze(candleData);
-    setBotState(botRef.current.getState());
-    setBotConfig(botRef.current.getConfig());
+    // Optimistic update
+    setBotState(prev => ({ ...prev, status: 'RUNNING' }));
+
     // Send command via Supabase
     sendBotCommand('start', selectedSymbol, strategies).catch(console.error);
-    // Also keep localStorage for local terminal
-    localStorage.setItem('bot-terminal-command', JSON.stringify({
-      command: 'start',
-      symbol: selectedSymbol,
-      strategies,
-      timestamp: Date.now()
-    }));
   };
 
   const handleBotStop = () => {
-    botRef.current.stop();
-    setBotState(botRef.current.getState());
-    setBotConfig(botRef.current.getConfig());
+    // Optimistic update
+    setBotState(prev => ({ ...prev, status: 'IDLE' }));
+
     // Send command via Supabase
     sendBotCommand('stop', selectedSymbol).catch(console.error);
-    // Also keep localStorage for local terminal
-    localStorage.setItem('bot-terminal-command', JSON.stringify({
-      command: 'stop',
-      timestamp: Date.now()
-    }));
   };
 
   const handleBotTradeAmountChange = (amount: number) => {
-    botRef.current.setTradeAmount(amount);
-    setBotConfig(botRef.current.getConfig());
+    setBotConfig(prev => ({ ...prev, tradeAmount: amount }));
+    // Note: We're not sending this to backend yet, backend uses default.
+    // Future improvement: Send config update command.
   };
 
   return (

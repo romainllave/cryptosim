@@ -47,3 +47,22 @@ CREATE POLICY "Allow all for portfolios" ON portfolios FOR ALL USING (true) WITH
 ALTER PUBLICATION supabase_realtime ADD TABLE bot_commands;
 ALTER PUBLICATION supabase_realtime ADD TABLE bot_trades;
 ALTER PUBLICATION supabase_realtime ADD TABLE portfolios;
+
+-- Bot Status Table (Singleton to track running state)
+CREATE TABLE IF NOT EXISTS bot_status (
+    id INT PRIMARY KEY DEFAULT 1,
+    status TEXT NOT NULL DEFAULT 'IDLE' CHECK (status IN ('IDLE', 'RUNNING')),
+    symbol TEXT DEFAULT 'BTC',
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    CONSTRAINT single_row CHECK (id = 1)
+);
+
+-- Insert default status
+INSERT INTO bot_status (id, status) VALUES (1, 'IDLE') ON CONFLICT (id) DO NOTHING;
+
+-- Enable RLS for bot_status
+ALTER TABLE bot_status ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow all for bot_status" ON bot_status FOR ALL USING (true) WITH CHECK (true);
+
+-- Enable Realtime for bot_status
+ALTER PUBLICATION supabase_realtime ADD TABLE bot_status;

@@ -11,14 +11,13 @@ import { fetchKlines, subscribeToKline } from '../services/binance';
 import {
     saveTrade,
     subscribeToCommands,
-    markCommandProcessed
+    markCommandProcessed,
+    updateBotStatus
 } from '../services/supabase';
 import type { BotCommand } from '../services/supabase';
 import type { CandleData } from '../utils/chartData';
 
 // Configuration
-const SYMBOL = 'BTC';
-const INTERVAL = '1m';
 const PORT = process.env.PORT || 3000;
 
 // Dummy HTTP Server for Render "Web Service" requirement
@@ -36,22 +35,64 @@ async function main() {
 
     // Initialize Bot
     const bot = new TradingBot({
-        symbol: SYMBOL,
-        tradeAmount: 0.001,
+        symbol: 'BTC',
+        tradeAmount: 0.001, // Default, can be updated via command if we add that later
         enabled: false // Start disabled, wait for command
     });
+
+    // Ensure status is synced as IDLE on startup
+    await updateBotStatus('IDLE', 'BTC');
 
     console.log('🤖 Bot initialized. Waiting for commands...');
 
     // Storage for candles
     let candles: CandleData[] = [];
+    let currentSymbol = 'BTC';
+    let cleanupBinance: (() => void) | null = null;
 
-    // 1. Fetch initial history
-    console.log(`📊 Fetching historical data for ${SYMBOL}...`);
-    candles = await fetchKlines(SYMBOL, INTERVAL);
-    console.log(`✅ Loaded ${candles.length} candles.`);
+    // Helper to switch symbol
+    const switchSymbol = async (newSymbol: string) => {
+        if (currentSymbol === newSymbol && candles.length > 0) return;
 
-    // 2. Setup Trade Callback
+        console.log(`🔄 Switching to ${newSymbol}...`);
+        currentSymbol = newSymbol;
+        bot.setSymbol(newSymbol);
+
+        // Cleanup previous subscription
+        if (cleanupBinance) cleanupBinance();
+
+        // 1. Fetch initial history
+        console.log(`📊 Fetching historical data for ${newSymbol}...`);
+        candles = await fetchKlines(newSymbol, '1m');
+        console.log(`✅ Loaded ${candles.length} candles.`);
+
+        // 2. Subscribe to Real-time updates
+        cleanupBinance = subscribeToKline(newSymbol, '1m', (candle) => {
+            // Update candle history
+            if (candles.length > 0) {
+                const last = candles[candles.length - 1];
+                if (last.time === candle.time) {
+                    candles[candles.length - 1] = candle;
+                } else {
+                    candles.push(candle);
+                    // Keep memory usage in check
+                    if (candles.length > 1000) candles.shift();
+                }
+            } else {
+                candles.push(candle);
+            }
+
+            // Run Analysis if Bot is Running
+            if (bot.isRunning()) {
+                bot.analyze(candles);
+            }
+        });
+    };
+
+    // Initial setup
+    await switchSymbol('BTC');
+
+    // Setup Trade Callback
     bot.setTradeCallback((type, amount, reason) => {
         const price = candles[candles.length - 1]?.close || 0;
         const total = amount * price;
@@ -69,59 +110,43 @@ async function main() {
             .catch(err => console.error('❌ Error saving trade:', err));
     });
 
-    // 3. Command Listener
+    // Command Listener
     subscribeToCommands(async (cmd: BotCommand) => {
         console.log('📩 Command received:', cmd);
 
-        // Only process if not already processed (though subscription gives new inserts)
         if (cmd.processed) return;
 
         if (cmd.command === 'start') {
-            if (cmd.symbol) bot.setSymbol(cmd.symbol);
+            if (cmd.symbol) {
+                await switchSymbol(cmd.symbol);
+            }
+
+            if (cmd.strategies) {
+                bot.setStrategies(cmd.strategies);
+                console.log('⚙️ Strategies updated:', cmd.strategies);
+            }
+
             bot.start();
+            await updateBotStatus('RUNNING', bot.getConfig().symbol);
             console.log(`🟢 Bot STARTED on ${bot.getConfig().symbol}`);
+
+            // Run immediate analysis
+            bot.analyze(candles);
+
         } else if (cmd.command === 'stop') {
             bot.stop();
+            await updateBotStatus('IDLE', bot.getConfig().symbol);
             console.log('🔴 Bot STOPPED');
         }
 
-        // Mark as processed if needed, or just rely on real-time event
         if (cmd.id) await markCommandProcessed(cmd.id);
-    });
-
-    // 4. Analysis Loop (triggered by new candle data)
-    // We subscribe to Binance WebSocket for real-time updates
-    const cleanupBinance = subscribeToKline(SYMBOL, INTERVAL, (candle) => {
-        // Update candle history
-        if (candles.length > 0) {
-            const last = candles[candles.length - 1];
-            if (last.time === candle.time) {
-                candles[candles.length - 1] = candle;
-            } else {
-                candles.push(candle);
-                // Keep memory usage in check, e.g., last 1000 candles
-                if (candles.length > 1000) candles.shift();
-            }
-        } else {
-            candles.push(candle);
-        }
-
-        // Run Analysis if Bot is Running
-        if (bot.isRunning()) {
-            // Optional: debouncing could be added here if updates are too frequent,
-            // but for 1m candles, running on every update is usually fine or 
-            // we can run only on candle close (when new candle arrives)
-
-            // For this implementation, let's analyze on every update to catch signals ASAP
-            bot.analyze(candles);
-        }
     });
 
     // Keep process alive
     process.on('SIGINT', () => {
         console.log('🛑 Shutting down...');
-        cleanupBinance();
-        process.exit(0);
+        if (cleanupBinance) cleanupBinance();
+        updateBotStatus('IDLE', currentSymbol).then(() => process.exit(0));
     });
 }
 

@@ -16,6 +16,11 @@ export class TradingBot {
             tradeAmount: 0.001,
             symbol: 'BTC',
             enabled: false,
+            strategies: {
+                sma: true,
+                meanReversion: true,
+                momentum: true
+            },
             ...config
         };
 
@@ -65,6 +70,10 @@ export class TradingBot {
         this.config.symbol = symbol;
     }
 
+    setStrategies(strategies: BotConfig['strategies']): void {
+        this.config.strategies = strategies;
+    }
+
     /**
      * Analyze market data and potentially execute a trade
      */
@@ -73,12 +82,18 @@ export class TradingBot {
             return this.state.lastAnalysis;
         }
 
-        // Run all three strategies
-        const results: StrategyResult[] = [
-            smaCrossover(candles),
-            meanReversion(candles),
-            momentum(candles)
-        ];
+        // Run enabled strategies
+        const results: StrategyResult[] = [];
+
+        if (this.config.strategies.sma) {
+            results.push(smaCrossover(candles));
+        }
+        if (this.config.strategies.meanReversion) {
+            results.push(meanReversion(candles));
+        }
+        if (this.config.strategies.momentum) {
+            results.push(momentum(candles));
+        }
 
         this.state.lastAnalysis = results;
 

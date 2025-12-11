@@ -129,7 +129,12 @@ export function aggregateSignals(results: StrategyResult[]): Signal {
     const buyCount = results.filter(r => r.signal === 'BUY').length;
     const sellCount = results.filter(r => r.signal === 'SELL').length;
 
-    // Majority vote: need 2 or more to agree
+    // If only 1 strategy is active/provided, follow it
+    if (results.length === 1) {
+        return results[0].signal;
+    }
+
+    // If multiple strategies, require at least 2 for confirmation (or majority if we had more strategies)
     if (buyCount >= 2) return 'BUY';
     if (sellCount >= 2) return 'SELL';
 

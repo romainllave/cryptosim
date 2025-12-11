@@ -11,6 +11,11 @@ export interface BotConfig {
     tradeAmount: number;
     symbol: string;
     enabled: boolean;
+    strategies: {
+        sma: boolean;
+        meanReversion: boolean;
+        momentum: boolean;
+    };
 }
 
 export interface BotState {
