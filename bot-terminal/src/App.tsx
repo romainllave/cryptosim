@@ -15,8 +15,8 @@ const mapLog = (dbLog: DBLogEntry): UILogEntry => ({
 
 function App() {
   const [logs, setLogs] = useState<UILogEntry[]>([]);
-  const [stats, setStats] = useState<BotStats>({
-    status: 'IDLE',
+  const [stats] = useState<BotStats>({
+    status: 'ACTIVE', // Default to active since we are just viewing
     symbol: 'BTC',
     trades: 0,
     balance: 0,
