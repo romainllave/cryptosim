@@ -96,7 +96,7 @@ async function main() {
 
             // Run Analysis if Bot is Running
             if (bot.isRunning()) {
-                const results = bot.analyze(candles);
+                bot.analyze(candles);
                 // Optional: Log signals if interesting?
                 // For now, only log trades.
             }
