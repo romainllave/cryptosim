@@ -11,7 +11,7 @@ import type { CandleData } from './utils/chartData';
 import { Activity, Moon, Sun } from 'lucide-react';
 import { clsx } from 'clsx';
 import { fetchKlines, subscribeToTickers, subscribeToKline } from './services/binance';
-import { loadBalance, saveBalance, loadTransactions, saveTransactions } from './services/storage';
+// import { loadBalance, saveBalance, loadTransactions, saveTransactions } from './services/storage'; // Deprecated
 import { calculateSMA } from './utils/indicators';
 import type { BotState, BotConfig } from './bot/botTypes';
 import {
@@ -19,7 +19,11 @@ import {
   saveTrade,
   updateBalance,
   subscribeToTrades,
-  subscribeToBotStatus
+  subscribeToBotStatus,
+  getUserSettings,
+  updateUserSettings,
+  getTrades,
+  getBalance
 } from './services/supabase';
 import type { BotTrade } from './services/supabase';
 
@@ -27,8 +31,8 @@ function App() {
   const [selectedSymbol, setSelectedSymbol] = useState<string>('BTC');
   const [cryptos, setCryptos] = useState<Crypto[]>(MOCK_CRYPTOS);
   const [candleData, setCandleData] = useState<CandleData[]>([]);
-  const [transactions, setTransactions] = useState<Transaction[]>(() => loadTransactions());
-  const [balance, setBalance] = useState<number>(() => loadBalance());
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [balance, setBalance] = useState<number>(10000); // Default, will verify with DB
   const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
   const [showSMA, setShowSMA] = useState<boolean>(false);
 
@@ -62,23 +66,54 @@ function App() {
 
   const selectedCrypto = cryptos.find(c => c.symbol === selectedSymbol) || cryptos[0];
 
+  // Initialization: Load Settings, Balance, and History from Supabase
+  useEffect(() => {
+    async function initData() {
+      // 1. Settings (Theme, Symbol)
+      const settings = await getUserSettings();
+      setIsDarkMode(settings.theme === 'dark');
+      if (settings.last_symbol) {
+        setSelectedSymbol(settings.last_symbol);
+        // Also ensure bot config matches selected symbol initially
+        setBotConfig(prev => ({ ...prev, symbol: settings.last_symbol }));
+      }
+
+      // 2. Balance
+      const dbBalance = await getBalance();
+      setBalance(dbBalance);
+
+      // 3. Transactions History
+      const dbTrades = await getTrades(100);
+      const mappedTransactions: Transaction[] = dbTrades.map(t => ({
+        id: `db-${t.id || Math.random()}`,
+        type: t.type,
+        symbol: t.symbol,
+        amount: t.amount,
+        price: t.price,
+        total: t.total,
+        timestamp: new Date(t.created_at || Date.now())
+      }));
+      setTransactions(mappedTransactions);
+    }
+
+    initData();
+  }, []);
+
+  // Sync Theme changes to DB
   useEffect(() => {
     if (isDarkMode) {
       document.documentElement.classList.add('dark');
+      updateUserSettings({ theme: 'dark' });
     } else {
       document.documentElement.classList.remove('dark');
+      updateUserSettings({ theme: 'light' });
     }
   }, [isDarkMode]);
 
-  // Persist Balance
+  // Sync Symbol changes to DB
   useEffect(() => {
-    saveBalance(balance);
-  }, [balance]);
-
-  // Persist Transactions
-  useEffect(() => {
-    saveTransactions(transactions);
-  }, [transactions]);
+    updateUserSettings({ last_symbol: selectedSymbol });
+  }, [selectedSymbol]);
 
   // Subscribe to Bot Status from Supabase
   useEffect(() => {
@@ -88,11 +123,7 @@ function App() {
         ...prev,
         status: data.status,
       }));
-      // If running, we assume it's running on the symbol reported
       if (data.status === 'RUNNING' && data.symbol) {
-        // Optionally update selected symbol if we want to follow the bot
-        // setSelectedSymbol(data.symbol); 
-        // For now, let's just keep the config in sync
         setBotConfig(prev => ({ ...prev, symbol: data.symbol, enabled: true }));
       } else {
         setBotConfig(prev => ({ ...prev, enabled: false }));
@@ -104,7 +135,6 @@ function App() {
   // Subscribe to bot trades from Supabase (real-time)
   useEffect(() => {
     const unsubscribe = subscribeToTrades((trade: BotTrade) => {
-      // Create a new transaction from the bot trade
       const newTx: Transaction = {
         id: `bot-${trade.id || Date.now()}`,
         type: trade.type,
@@ -115,21 +145,25 @@ function App() {
         timestamp: new Date(trade.created_at || Date.now())
       };
 
-      // Add to transactions if not already present
       setTransactions(prev => {
+        // Avoid duplicates if real-time fires before initial load finishes
         if (prev.some(tx => tx.id === newTx.id)) return prev;
         return [newTx, ...prev];
       });
 
-      // Update stats based on trades
       setBotState(prev => ({
         ...prev,
         tradesCount: prev.tradesCount + 1,
         lastTradeTime: newTx.timestamp,
-        // Approximate P/L calculation could be done here if we tracked open positions
       }));
 
-      console.log('🤖 Bot trade received:', trade);
+      // Also update balance in UI realistically
+      // (Though a subscribeToBalance would be better to keep in sync with backend logic)
+      if (trade.type === 'BUY') {
+        setBalance(b => b - trade.total);
+      } else {
+        setBalance(b => b + trade.total);
+      }
     });
 
     return () => unsubscribe();

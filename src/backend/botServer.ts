@@ -14,7 +14,8 @@ import {
     markCommandProcessed,
     updateBotStatus,
     getBalance,
-    updateBalance
+    updateBalance,
+    saveLog
 } from '../services/supabase';
 import type { BotCommand } from '../services/supabase';
 import type { CandleData } from '../utils/chartData';
@@ -45,7 +46,15 @@ async function main() {
     // Ensure status is synced as IDLE on startup
     await updateBotStatus('IDLE', 'BTC');
 
+    // Helper for logging to DB + Console
+    const log = (type: 'info' | 'success' | 'warning' | 'error' | 'trade' | 'signal', msg: string) => {
+        console.log(`[${type.toUpperCase()}] ${msg}`);
+        // Fire and forget log save
+        saveLog(type, msg).catch(err => console.error('Failed to save log:', err));
+    };
+
     console.log('🤖 Bot initialized. Waiting for commands...');
+    log('info', 'Bot Service initialized. Waiting for commands...');
 
     // Storage for candles
     let candles: CandleData[] = [];
@@ -67,6 +76,7 @@ async function main() {
         console.log(`📊 Fetching historical data for ${newSymbol}...`);
         candles = await fetchKlines(newSymbol, '1m');
         console.log(`✅ Loaded ${candles.length} candles.`);
+        log('info', `Switched to ${newSymbol}. Loaded ${candles.length} candles.`);
 
         // 2. Subscribe to Real-time updates
         cleanupBinance = subscribeToKline(newSymbol, '1m', (candle) => {
@@ -86,7 +96,9 @@ async function main() {
 
             // Run Analysis if Bot is Running
             if (bot.isRunning()) {
-                bot.analyze(candles);
+                const results = bot.analyze(candles);
+                // Optional: Log signals if interesting?
+                // For now, only log trades.
             }
         });
     };
@@ -109,30 +121,25 @@ async function main() {
         if (type === 'BUY') {
             // Check if we have enough funds
             if (totalValue > currentBalance) {
-                console.warn(`⚠️ Insufficient funds for trade: ${totalValue.toFixed(2)} > ${currentBalance.toFixed(2)}`);
-                // Optional: Adjust amount to max possible? Or just reject.
-                // Let's cap at maxTradeValue or Balance, whichever is smaller.
+                log('warning', `⚠️ Insufficient funds: ${totalValue.toFixed(2)} > ${currentBalance.toFixed(2)}`);
                 const safeValue = Math.min(currentBalance, maxTradeValue);
                 tradeAmount = safeValue / price;
                 totalValue = tradeAmount * price;
-                console.log(`📉 Adjusted trade amount to safe limit: ${tradeAmount.toFixed(4)} BTC (${totalValue.toFixed(2)} USDT)`);
+                log('warning', `📉 Adjusted trade to safe limit: ${tradeAmount.toFixed(4)} ${bot.getConfig().symbol}`);
             } else if (totalValue > maxTradeValue) {
-                console.warn(`⚠️ Trade exceeds risk limit (20%): ${totalValue.toFixed(2)} > ${maxTradeValue.toFixed(2)}`);
-                // Cap at maxTradeValue
+                log('warning', `⚠️ Trade exceeds risk limit (20%)`);
                 tradeAmount = maxTradeValue / price;
                 totalValue = tradeAmount * price;
-                console.log(`📉 Adjusted trade amount to risk limit: ${tradeAmount.toFixed(4)} BTC`);
+                log('warning', `📉 Adjusted trade to risk limit: ${tradeAmount.toFixed(4)} ${bot.getConfig().symbol}`);
             }
         }
 
-        // Final sanity check
         if (tradeAmount <= 0) {
-            console.error('❌ Trade amount too small after risk adjustment. Skipping.');
+            log('error', '❌ Trade amount too small. Skipping.');
             return;
         }
 
-        console.log(`⚡ EXECUTING TRADE: ${type} ${tradeAmount.toFixed(4)} @ ${price} (${reason})`);
-        console.log(`💰 Balance before: ${currentBalance.toFixed(2)}, Cost: ${totalValue.toFixed(2)}`);
+        log('trade', `⚡ EXECUTING: ${type} ${tradeAmount.toFixed(4)} @ ${price} (${reason})`);
 
         // 3. Update Balance
         let newBalance = currentBalance;
@@ -143,7 +150,7 @@ async function main() {
         }
 
         await updateBalance(newBalance);
-        console.log(`✅ Balance updated: ${newBalance.toFixed(2)} USDT`);
+        log('success', `💰 Balance updated: ${newBalance.toFixed(2)} USDT`);
 
         // 4. Save Trade
         saveTrade({
@@ -153,8 +160,8 @@ async function main() {
             price,
             total: totalValue,
             reason
-        }).then(() => console.log('💾 Trade saved to Supabase'))
-            .catch(err => console.error('❌ Error saving trade:', err));
+        }).then(() => log('success', '💾 Trade saved to DB'))
+            .catch(err => log('error', `❌ Error saving trade: ${err.message}`));
     });
 
     // Command Listener
@@ -164,18 +171,19 @@ async function main() {
         if (cmd.processed) return;
 
         if (cmd.command === 'start') {
+            log('info', '📩 Command received: START');
             if (cmd.symbol) {
                 await switchSymbol(cmd.symbol);
             }
 
             if (cmd.strategies) {
                 bot.setStrategies(cmd.strategies);
-                console.log('⚙️ Strategies updated:', cmd.strategies);
+                log('info', '⚙️ Strategies updated');
             }
 
             bot.start();
             await updateBotStatus('RUNNING', bot.getConfig().symbol);
-            console.log(`🟢 Bot STARTED on ${bot.getConfig().symbol}`);
+            log('success', `🟢 Bot STARTED on ${bot.getConfig().symbol}`);
 
             // Run immediate analysis
             bot.analyze(candles);
@@ -183,7 +191,7 @@ async function main() {
         } else if (cmd.command === 'stop') {
             bot.stop();
             await updateBotStatus('IDLE', bot.getConfig().symbol);
-            console.log('🔴 Bot STOPPED');
+            log('warning', '🔴 Bot STOPPED');
         }
 
         if (cmd.id) await markCommandProcessed(cmd.id);
@@ -191,7 +199,7 @@ async function main() {
 
     // Keep process alive
     process.on('SIGINT', () => {
-        console.log('🛑 Shutting down...');
+        log('error', '🛑 Shutting down...');
         if (cleanupBinance) cleanupBinance();
         updateBotStatus('IDLE', currentSymbol).then(() => process.exit(0));
     });

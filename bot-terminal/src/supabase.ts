@@ -88,3 +88,63 @@ export async function updateBalance(balance: number): Promise<void> {
         .from('portfolios')
         .upsert({ id: 1, balance, updated_at: new Date().toISOString() });
 }
+
+// Bot Logs
+export interface LogEntry {
+    id: string;
+    type: 'info' | 'success' | 'warning' | 'error' | 'trade' | 'signal';
+    message: string;
+    timestamp?: Date; // Frontend uses Date object
+    created_at?: string; // DB uses string
+}
+
+export async function saveLog(type: LogEntry['type'], message: string): Promise<void> {
+    const { error } = await supabase
+        .from('bot_logs')
+        .insert({ type, message });
+
+    if (error) {
+        console.error('Error saving log:', error);
+    }
+}
+
+export async function getLogs(limit: number = 100): Promise<LogEntry[]> {
+    const { data, error } = await supabase
+        .from('bot_logs')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(limit);
+
+    if (error) {
+        console.error('Error getting logs:', error);
+        return [];
+    }
+
+    return (data || []).map(l => ({
+        ...l,
+        id: l.id.toString(),
+        timestamp: new Date(l.created_at)
+    })).reverse(); // Terminal expects oldest first (top) -> newest (bottom)
+}
+
+export function subscribeToLogs(callback: (log: LogEntry) => void) {
+    const channel = supabase
+        .channel('bot-logs-terminal')
+        .on(
+            'postgres_changes',
+            { event: 'INSERT', schema: 'public', table: 'bot_logs' },
+            (payload) => {
+                const newLog = payload.new as any;
+                callback({
+                    ...newLog,
+                    id: newLog.id.toString(),
+                    timestamp: new Date(newLog.created_at)
+                });
+            }
+        )
+        .subscribe();
+
+    return () => {
+        supabase.removeChannel(channel);
+    };
+}

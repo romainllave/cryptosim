@@ -6,7 +6,7 @@ export interface LogEntry {
 }
 
 export interface BotStats {
-    status: 'RUNNING' | 'IDLE';
+    status: 'RUNNING' | 'IDLE' | 'ACTIVE';
     symbol: string;
     trades: number;
     balance: number;

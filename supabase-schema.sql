@@ -66,3 +66,37 @@ CREATE POLICY "Allow all for bot_status" ON bot_status FOR ALL USING (true) WITH
 
 -- Enable Realtime for bot_status
 ALTER PUBLICATION supabase_realtime ADD TABLE bot_status;
+
+-- User Settings Table (Singleton)
+CREATE TABLE IF NOT EXISTS user_settings (
+    id INT PRIMARY KEY DEFAULT 1,
+    theme TEXT NOT NULL DEFAULT 'light' CHECK (theme IN ('light', 'dark')),
+    last_symbol TEXT DEFAULT 'BTC',
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    CONSTRAINT single_row CHECK (id = 1)
+);
+
+-- Insert default settings
+INSERT INTO user_settings (id, theme, last_symbol) VALUES (1, 'light', 'BTC') ON CONFLICT (id) DO NOTHING;
+
+-- Enable RLS for user_settings
+ALTER TABLE user_settings ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow all for user_settings" ON user_settings FOR ALL USING (true) WITH CHECK (true);
+
+-- Enable Realtime for user_settings
+ALTER PUBLICATION supabase_realtime ADD TABLE user_settings;
+
+-- Bot Logs Table
+CREATE TABLE IF NOT EXISTS bot_logs (
+    id SERIAL PRIMARY KEY,
+    type TEXT NOT NULL CHECK (type IN ('info', 'success', 'warning', 'error', 'trade', 'signal')),
+    message TEXT NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Enable RLS for bot_logs
+ALTER TABLE bot_logs ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow all for bot_logs" ON bot_logs FOR ALL USING (true) WITH CHECK (true);
+
+-- Enable Realtime for bot_logs
+ALTER PUBLICATION supabase_realtime ADD TABLE bot_logs;

@@ -113,7 +113,7 @@ export async function saveTrade(trade: Omit<BotTrade, 'id' | 'created_at'>): Pro
     }
 }
 
-export async function getTrades(limit: number = 50): Promise<BotTrade[]> {
+export async function getTrades(limit: number = 100): Promise<BotTrade[]> {
     const { data, error } = await supabase
         .from('bot_trades')
         .select('*')
@@ -230,6 +230,95 @@ export function subscribeToBotStatus(callback: (status: { status: 'IDLE' | 'RUNN
         .then(({ data }) => {
             if (data) callback(data as any);
         });
+
+    return () => {
+        supabase.removeChannel(channel);
+    };
+}
+
+// User Settings
+export interface UserSettings {
+    theme: 'light' | 'dark';
+    last_symbol: string;
+}
+
+export async function getUserSettings(): Promise<UserSettings> {
+    const { data, error } = await supabase
+        .from('user_settings')
+        .select('*')
+        .single();
+
+    if (error) {
+        // Silent error for new users or missing table, return defaults
+        if (error.code !== 'PGRST116') {
+            // console.warn('Error loading user settings (using defaults):', error.message);
+        }
+        return { theme: 'light', last_symbol: 'BTC' };
+    }
+    return data as UserSettings;
+}
+
+export async function updateUserSettings(settings: Partial<UserSettings>): Promise<void> {
+    const { error } = await supabase
+        .from('user_settings')
+        .upsert({
+            id: 1,
+            ...settings,
+            updated_at: new Date().toISOString()
+        });
+
+    if (error) {
+        console.error('Error updating user settings:', error);
+    }
+}
+
+// Bot Logs
+export interface LogEntry {
+    id: string; // Supabase uses number/string, we cast to string for frontend
+    type: 'info' | 'success' | 'warning' | 'error' | 'trade' | 'signal';
+    message: string;
+    created_at?: string;
+}
+
+export async function saveLog(type: LogEntry['type'], message: string): Promise<void> {
+    const { error } = await supabase
+        .from('bot_logs')
+        .insert({ type, message });
+
+    if (error) {
+        console.error('Error saving log:', error);
+    }
+}
+
+export async function getLogs(limit: number = 100): Promise<LogEntry[]> {
+    const { data, error } = await supabase
+        .from('bot_logs')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(limit);
+
+    if (error) {
+        console.error('Error getting logs:', error);
+        return [];
+    }
+    // Reverse to show oldest first if needed, or keep latest first. 
+    // Usually terminals show oldest at top, but we fetch latest. 
+    // We will reverse in frontend or here. Let's return as is (descending) and let frontend handle display order.
+    return (data || []).map(l => ({ ...l, id: l.id.toString() }));
+}
+
+export function subscribeToLogs(callback: (log: LogEntry) => void) {
+    const channel = supabase
+        .channel('bot-logs')
+        .on(
+            'postgres_changes',
+            { event: 'INSERT', schema: 'public', table: 'bot_logs' },
+            (payload) => {
+                const newLog = payload.new as any;
+                callback({ ...newLog, id: newLog.id.toString() });
+            }
+        )
+        .subscribe();
 
     return () => {
         supabase.removeChannel(channel);
