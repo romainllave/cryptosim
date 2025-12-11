@@ -61,6 +61,7 @@ async function main() {
     let candles: CandleData[] = [];
     let currentSymbol = 'BTC';
     let cleanupBinance: (() => void) | null = null;
+    let heartbeatInterval: NodeJS.Timeout | null = null;
 
     // Helper to switch symbol
     const switchSymbol = async (newSymbol: string) => {
@@ -70,8 +71,9 @@ async function main() {
         currentSymbol = newSymbol;
         bot.setSymbol(newSymbol);
 
-        // Cleanup previous subscription
+        // Cleanup previous subscription and interval
         if (cleanupBinance) cleanupBinance();
+        if (heartbeatInterval) clearInterval(heartbeatInterval);
 
         // 1. Fetch initial history
         console.log(`📊 Fetching historical data for ${newSymbol}...`);
@@ -111,28 +113,20 @@ async function main() {
 
         // Periodic Analysis Reporting (Heartbeat & Discord)
         // This runs separately from the real-time tick analysis to give user feedback
-        setInterval(async () => {
+        heartbeatInterval = setInterval(async () => {
             if (!bot.isRunning() || candles.length === 0) return;
 
             const price = candles[candles.length - 1].close;
-            const results = bot.analyze(candles); // Re-run analysis for reporting
+            bot.analyze(candles); // Re-run analysis for reporting
             const currentBalance = await getBalance();
-
-            // Extract scores from results (assuming strategy structure)
-            // We need to access internal strategy scores if possible, or just mock them for the report if they aren't exposed.
-            // The StrategyResult type has `signal` and `score`? Let's check.
-            // If not available easily, we will log a generic report.
 
             // For now, let's log to DB so user sees "Analyzing"
             log('info', `📊 Analyzing ${currentSymbol} @ $${price.toFixed(2)}...`);
 
             // Send Discord Heartbeat (HOLD) report
-            // We need to mock scores since bot engine doesn't return them in detail here easily without refactor
-            // Logic: Just report current status.
             sendDiscordReport({
                 symbol: currentSymbol,
                 smaScore: 50, // Placeholder
-                meanRevScore: 50,
                 meanRevScore: 50,
                 momentumScore: 50,
                 probability: 50,
@@ -141,110 +135,109 @@ async function main() {
             }).catch(console.error);
 
         }, 60000); // Log every 1 minute
+    };
 
+    // Initial setup
+    await switchSymbol('BTC');
+
+    // Setup Trade Callback
+    bot.setTradeCallback(async (type, amount, reason) => {
+        const price = candles[candles.length - 1]?.close || 0;
+        let tradeAmount = amount;
+
+        // 1. Get Current Balance
+        const currentBalance = await getBalance();
+        const maxTradeValue = currentBalance * 0.2; // Max 20% of balance per trade (Safety Rule)
+
+        // 2. Risk Check & Position Sizing
+        let totalValue = tradeAmount * price;
+
+        if (type === 'BUY') {
+            // Check if we have enough funds
+            if (totalValue > currentBalance) {
+                log('warning', `⚠️ Insufficient funds: ${totalValue.toFixed(2)} > ${currentBalance.toFixed(2)}`);
+                const safeValue = Math.min(currentBalance, maxTradeValue);
+                tradeAmount = safeValue / price;
+                totalValue = tradeAmount * price;
+                log('warning', `📉 Adjusted trade to safe limit: ${tradeAmount.toFixed(4)} ${bot.getConfig().symbol}`);
+            } else if (totalValue > maxTradeValue) {
+                log('warning', `⚠️ Trade exceeds risk limit (20%)`);
+                tradeAmount = maxTradeValue / price;
+                totalValue = tradeAmount * price;
+                log('warning', `📉 Adjusted trade to risk limit: ${tradeAmount.toFixed(4)} ${bot.getConfig().symbol}`);
+            }
+        }
+
+        if (tradeAmount <= 0) {
+            log('error', '❌ Trade amount too small. Skipping.');
+            return;
+        }
+
+        log('trade', `⚡ EXECUTING: ${type} ${tradeAmount.toFixed(4)} @ ${price} (${reason})`);
+
+        // 3. Update Balance
+        let newBalance = currentBalance;
+        if (type === 'BUY') {
+            newBalance -= totalValue;
+        } else if (type === 'SELL') {
+            newBalance += totalValue;
+        }
+
+        await updateBalance(newBalance);
+        log('success', `💰 Balance updated: ${newBalance.toFixed(2)} USDT`);
+
+        // 4. Save Trade
+        saveTrade({
+            type,
+            symbol: bot.getConfig().symbol,
+            amount: tradeAmount,
+            price,
+            total: totalValue,
+            reason
+        }).then(() => log('success', '💾 Trade saved to DB'))
+            .catch(err => log('error', `❌ Error saving trade: ${err.message}`));
     });
-};
 
-// Initial setup
-await switchSymbol('BTC');
+    // Command Listener
+    subscribeToCommands(async (cmd: BotCommand) => {
+        console.log('📩 Command received:', cmd);
 
-// Setup Trade Callback
-bot.setTradeCallback(async (type, amount, reason) => {
-    const price = candles[candles.length - 1]?.close || 0;
-    let tradeAmount = amount;
+        if (cmd.processed) return;
 
-    // 1. Get Current Balance
-    const currentBalance = await getBalance();
-    const maxTradeValue = currentBalance * 0.2; // Max 20% of balance per trade (Safety Rule)
+        if (cmd.command === 'start') {
+            log('info', '📩 Command received: START');
+            if (cmd.symbol) {
+                await switchSymbol(cmd.symbol);
+            }
 
-    // 2. Risk Check & Position Sizing
-    let totalValue = tradeAmount * price;
+            if (cmd.strategies) {
+                bot.setStrategies(cmd.strategies);
+                log('info', '⚙️ Strategies updated');
+            }
 
-    if (type === 'BUY') {
-        // Check if we have enough funds
-        if (totalValue > currentBalance) {
-            log('warning', `⚠️ Insufficient funds: ${totalValue.toFixed(2)} > ${currentBalance.toFixed(2)}`);
-            const safeValue = Math.min(currentBalance, maxTradeValue);
-            tradeAmount = safeValue / price;
-            totalValue = tradeAmount * price;
-            log('warning', `📉 Adjusted trade to safe limit: ${tradeAmount.toFixed(4)} ${bot.getConfig().symbol}`);
-        } else if (totalValue > maxTradeValue) {
-            log('warning', `⚠️ Trade exceeds risk limit (20%)`);
-            tradeAmount = maxTradeValue / price;
-            totalValue = tradeAmount * price;
-            log('warning', `📉 Adjusted trade to risk limit: ${tradeAmount.toFixed(4)} ${bot.getConfig().symbol}`);
-        }
-    }
+            bot.start();
+            await updateBotStatus('RUNNING', bot.getConfig().symbol);
+            log('success', `🟢 Bot STARTED on ${bot.getConfig().symbol}`);
 
-    if (tradeAmount <= 0) {
-        log('error', '❌ Trade amount too small. Skipping.');
-        return;
-    }
+            // Run immediate analysis
+            bot.analyze(candles);
 
-    log('trade', `⚡ EXECUTING: ${type} ${tradeAmount.toFixed(4)} @ ${price} (${reason})`);
-
-    // 3. Update Balance
-    let newBalance = currentBalance;
-    if (type === 'BUY') {
-        newBalance -= totalValue;
-    } else if (type === 'SELL') {
-        newBalance += totalValue;
-    }
-
-    await updateBalance(newBalance);
-    log('success', `💰 Balance updated: ${newBalance.toFixed(2)} USDT`);
-
-    // 4. Save Trade
-    saveTrade({
-        type,
-        symbol: bot.getConfig().symbol,
-        amount: tradeAmount,
-        price,
-        total: totalValue,
-        reason
-    }).then(() => log('success', '💾 Trade saved to DB'))
-        .catch(err => log('error', `❌ Error saving trade: ${err.message}`));
-});
-
-// Command Listener
-subscribeToCommands(async (cmd: BotCommand) => {
-    console.log('📩 Command received:', cmd);
-
-    if (cmd.processed) return;
-
-    if (cmd.command === 'start') {
-        log('info', '📩 Command received: START');
-        if (cmd.symbol) {
-            await switchSymbol(cmd.symbol);
+        } else if (cmd.command === 'stop') {
+            bot.stop();
+            await updateBotStatus('IDLE', bot.getConfig().symbol);
+            log('warning', '🔴 Bot STOPPED');
         }
 
-        if (cmd.strategies) {
-            bot.setStrategies(cmd.strategies);
-            log('info', '⚙️ Strategies updated');
-        }
+        if (cmd.id) await markCommandProcessed(cmd.id);
+    });
 
-        bot.start();
-        await updateBotStatus('RUNNING', bot.getConfig().symbol);
-        log('success', `🟢 Bot STARTED on ${bot.getConfig().symbol}`);
-
-        // Run immediate analysis
-        bot.analyze(candles);
-
-    } else if (cmd.command === 'stop') {
-        bot.stop();
-        await updateBotStatus('IDLE', bot.getConfig().symbol);
-        log('warning', '🔴 Bot STOPPED');
-    }
-
-    if (cmd.id) await markCommandProcessed(cmd.id);
-});
-
-// Keep process alive
-process.on('SIGINT', () => {
-    log('error', '🛑 Shutting down...');
-    if (cleanupBinance) cleanupBinance();
-    updateBotStatus('IDLE', currentSymbol).then(() => process.exit(0));
-});
+    // Keep process alive
+    process.on('SIGINT', () => {
+        log('error', '🛑 Shutting down...');
+        if (cleanupBinance) cleanupBinance();
+        if (heartbeatInterval) clearInterval(heartbeatInterval);
+        updateBotStatus('IDLE', currentSymbol).then(() => process.exit(0));
+    });
 }
 
 main().catch(console.error);
