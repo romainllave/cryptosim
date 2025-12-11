@@ -12,7 +12,9 @@ import {
     saveTrade,
     subscribeToCommands,
     markCommandProcessed,
-    updateBotStatus
+    updateBotStatus,
+    getBalance,
+    updateBalance
 } from '../services/supabase';
 import type { BotCommand } from '../services/supabase';
 import type { CandleData } from '../utils/chartData';
@@ -93,18 +95,63 @@ async function main() {
     await switchSymbol('BTC');
 
     // Setup Trade Callback
-    bot.setTradeCallback((type, amount, reason) => {
+    bot.setTradeCallback(async (type, amount, reason) => {
         const price = candles[candles.length - 1]?.close || 0;
-        const total = amount * price;
+        let tradeAmount = amount;
 
-        console.log(`⚡ EXECUTING TRADE: ${type} ${amount} @ ${price} (${reason})`);
+        // 1. Get Current Balance
+        const currentBalance = await getBalance();
+        const maxTradeValue = currentBalance * 0.2; // Max 20% of balance per trade (Safety Rule)
 
+        // 2. Risk Check & Position Sizing
+        let totalValue = tradeAmount * price;
+
+        if (type === 'BUY') {
+            // Check if we have enough funds
+            if (totalValue > currentBalance) {
+                console.warn(`⚠️ Insufficient funds for trade: ${totalValue.toFixed(2)} > ${currentBalance.toFixed(2)}`);
+                // Optional: Adjust amount to max possible? Or just reject.
+                // Let's cap at maxTradeValue or Balance, whichever is smaller.
+                const safeValue = Math.min(currentBalance, maxTradeValue);
+                tradeAmount = safeValue / price;
+                totalValue = tradeAmount * price;
+                console.log(`📉 Adjusted trade amount to safe limit: ${tradeAmount.toFixed(4)} BTC (${totalValue.toFixed(2)} USDT)`);
+            } else if (totalValue > maxTradeValue) {
+                console.warn(`⚠️ Trade exceeds risk limit (20%): ${totalValue.toFixed(2)} > ${maxTradeValue.toFixed(2)}`);
+                // Cap at maxTradeValue
+                tradeAmount = maxTradeValue / price;
+                totalValue = tradeAmount * price;
+                console.log(`📉 Adjusted trade amount to risk limit: ${tradeAmount.toFixed(4)} BTC`);
+            }
+        }
+
+        // Final sanity check
+        if (tradeAmount <= 0) {
+            console.error('❌ Trade amount too small after risk adjustment. Skipping.');
+            return;
+        }
+
+        console.log(`⚡ EXECUTING TRADE: ${type} ${tradeAmount.toFixed(4)} @ ${price} (${reason})`);
+        console.log(`💰 Balance before: ${currentBalance.toFixed(2)}, Cost: ${totalValue.toFixed(2)}`);
+
+        // 3. Update Balance
+        let newBalance = currentBalance;
+        if (type === 'BUY') {
+            newBalance -= totalValue;
+        } else if (type === 'SELL') {
+            newBalance += totalValue;
+        }
+
+        await updateBalance(newBalance);
+        console.log(`✅ Balance updated: ${newBalance.toFixed(2)} USDT`);
+
+        // 4. Save Trade
         saveTrade({
             type,
             symbol: bot.getConfig().symbol,
-            amount,
+            amount: tradeAmount,
             price,
-            total,
+            total: totalValue,
             reason
         }).then(() => console.log('💾 Trade saved to Supabase'))
             .catch(err => console.error('❌ Error saving trade:', err));
