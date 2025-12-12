@@ -232,7 +232,13 @@ async function main() {
             }
 
             if (cmd.strategies) {
-                bot.setStrategies(cmd.strategies);
+                bot.setStrategies({
+                    sma: cmd.strategies.sma,
+                    meanReversion: cmd.strategies.meanReversion,
+                    momentum: cmd.strategies.momentum,
+                    prediction: cmd.strategies.prediction ?? false,
+                    ema: cmd.strategies.ema ?? false
+                });
                 log('info', '⚙️ Strategies updated via Command');
             }
 
