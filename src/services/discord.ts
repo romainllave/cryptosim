@@ -1,6 +1,7 @@
 // import fetch from 'node-fetch'; // Built-in in Node 18+
 
 const DISCORD_WEBHOOK_URL = 'https://discord.com/api/webhooks/1447912035861135512/mKUgVixg4qB9Tygy8yUqWalHe3Kt40bEDs2pf0xZmxElxNxydWzxhH84u6_yUdvQSlEG';
+const TRADE_WEBHOOK_URL = 'https://discord.com/api/webhooks/1448979753620082698/ZN57Aqn6NXN7ToKyBQ-TrGHqiZcipENJrHNol6aLWIbJlzZMyOcaq5JNXsfDTp2k-I8d';
 
 interface AnalysisReport {
     symbol: string;
@@ -12,6 +13,59 @@ interface AnalysisReport {
     tradeAmount?: number;
     price?: number;
     balance: number;
+}
+
+export interface TradeAlertReport {
+    symbol: string;
+    type: 'BUY' | 'SELL';
+    price: number;
+    amount: number;
+    total: number;
+    profit?: number;
+    profitPercent?: number;
+}
+
+export async function sendTradeAlert(alert: TradeAlertReport): Promise<void> {
+    const isBuy = alert.type === 'BUY';
+    const color = isBuy ? 0x00ff00 : 0xff0000; // Green for Buy, Red for Sell
+    const title = isBuy ? `🟢 BUY ALETRT: ${alert.symbol}` : `🔴 SELL ALERT: ${alert.symbol}`;
+
+    const fields = [
+        { name: 'Price', value: `$${alert.price.toFixed(2)}`, inline: true },
+        { name: 'Amount', value: `${alert.amount.toFixed(4)}`, inline: true },
+        { name: 'Total Value', value: `$${alert.total.toFixed(2)}`, inline: true },
+    ];
+
+    if (!isBuy && alert.profit !== undefined && alert.profitPercent !== undefined) {
+        const pEmoji = alert.profit >= 0 ? '🤑' : '💸';
+        fields.push({
+            name: `${pEmoji} Profit/Loss`,
+            value: `**$${alert.profit.toFixed(2)}** (${alert.profitPercent.toFixed(2)}%)`,
+            inline: false
+        });
+    }
+
+    const embed = {
+        title,
+        color,
+        fields,
+        footer: { text: '🤖 CryptoSim Bot Trade' },
+        timestamp: new Date().toISOString()
+    };
+
+    try {
+        await fetch(TRADE_WEBHOOK_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                username: '🤖 Trade Bot',
+                embeds: [embed]
+            })
+        });
+        console.log('Trade alert sent to Discord');
+    } catch (error) {
+        console.error('Failed to send Discord trade alert:', error);
+    }
 }
 
 export async function sendDiscordReport(report: AnalysisReport): Promise<void> {

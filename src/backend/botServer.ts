@@ -21,7 +21,7 @@ import {
 } from '../services/supabase';
 import type { BotCommand } from '../services/supabase';
 import type { CandleData } from '../utils/chartData';
-import { sendDiscordReport } from '../services/discord';
+import { sendDiscordReport, sendTradeAlert } from '../services/discord';
 
 // Configuration
 const PORT = process.env.PORT || 3000;
@@ -89,6 +89,7 @@ async function main() {
     let currentSymbol = 'BTC';
     let cleanupBinance: (() => void) | null = null;
     let heartbeatInterval: NodeJS.Timeout | null = null;
+    let lastBuyPrice: number | null = null; // Track entry price for profit calc
 
     // Helper to switch symbol
     const switchSymbol = async (newSymbol: string) => {
@@ -206,6 +207,40 @@ async function main() {
 
         await updateBalance(newBalance);
         log('success', `💰 Balance updated: ${newBalance.toFixed(2)} USDT`);
+        if (type === 'BUY') {
+            lastBuyPrice = price;
+            // Send Buy Alert
+            sendTradeAlert({
+                symbol: bot.getConfig().symbol,
+                type: 'BUY',
+                price,
+                amount: tradeAmount,
+                total: totalValue
+            });
+        } else if (type === 'SELL') {
+            let profit = 0;
+            let profitPercent = 0;
+
+            if (lastBuyPrice) {
+                profit = (price - lastBuyPrice) * tradeAmount;
+                profitPercent = ((price - lastBuyPrice) / lastBuyPrice) * 100;
+            }
+
+            // Send Sell Alert with Profit
+            sendTradeAlert({
+                symbol: bot.getConfig().symbol,
+                type: 'SELL',
+                price,
+                amount: tradeAmount,
+                total: totalValue,
+                profit,
+                profitPercent
+            });
+
+            lastBuyPrice = null; // Reset tracking
+        }
+
+        log('success', `✅ Trade Confirmed: ${type}`);
 
         // 4. Save Trade
         saveTrade({
