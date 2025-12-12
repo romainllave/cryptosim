@@ -71,58 +71,116 @@ type TickerCallback = (data: { [symbol: string]: { price: number, change: number
 
 export const subscribeToTickers = (symbols: string[], callback: TickerCallback) => {
   const streams = symbols.map(s => `${symbolToPair(s).toLowerCase()}@ticker`).join('/');
-  const ws = new WebSocket(`${WS_URL}/${streams}`);
+  let ws: WebSocket | null = null;
+  let shouldReconnect = true;
+  let reconnectTimeout: NodeJS.Timeout | null = null;
 
-  ws.onmessage = (event) => {
-    try {
-      const msg = JSON.parse(event.data);
-      const data = msg.data || msg;
+  const connect = () => {
+    if (!shouldReconnect) return;
 
-      if (!data || !data.s) return;
+    ws = new WebSocket(`${WS_URL}/${streams}`);
 
-      // Normalize symbol from BTCUSDT -> BTC
-      const symbol = data.s.replace('USDT', '');
+    ws.onopen = () => {
+      console.log('✅ Ticker WebSocket Connected');
+    };
 
-      callback({
-        [symbol]: {
-          price: parseFloat(data.c),
-          change: parseFloat(data.P)
-        }
-      });
-    } catch (e) {
-      console.error("Ticker WS Error:", e);
-    }
+    ws.onmessage = (event) => {
+      try {
+        const msg = JSON.parse(event.data);
+        const data = msg.data || msg;
+
+        if (!data || !data.s) return;
+
+        // Normalize symbol from BTCUSDT -> BTC
+        const symbol = data.s.replace('USDT', '');
+
+        callback({
+          [symbol]: {
+            price: parseFloat(data.c),
+            change: parseFloat(data.P)
+          }
+        });
+      } catch (e) {
+        console.error("Ticker WS Message Error:", e);
+      }
+    };
+
+    ws.onerror = (err) => {
+      console.error("Ticker WS Error:", err);
+    };
+
+    ws.onclose = () => {
+      if (shouldReconnect) {
+        console.log('⚠️ Ticker WebSocket closed. Reconnecting in 5s...');
+        reconnectTimeout = setTimeout(connect, 5000);
+      }
+    };
   };
 
-  return () => ws.close();
+  connect();
+
+  return () => {
+    shouldReconnect = false;
+    if (ws) ws.close();
+    if (reconnectTimeout) clearTimeout(reconnectTimeout);
+  };
 };
 
 type KlineCallback = (candle: CandleData) => void;
 
 export const subscribeToKline = (symbol: string, interval: string, callback: KlineCallback) => {
   const pair = symbolToPair(symbol).toLowerCase();
-  const ws = new WebSocket(`${WS_URL}/${pair}@kline_${interval}`);
+  let ws: WebSocket | null = null;
+  let shouldReconnect = true;
+  let reconnectTimeout: NodeJS.Timeout | null = null;
 
-  ws.onmessage = (event) => {
-    try {
-      const msg = JSON.parse(event.data);
-      const k = msg.k; // kline object
+  const connect = () => {
+    if (!shouldReconnect) return;
 
-      if (!k) return;
+    ws = new WebSocket(`${WS_URL}/${pair}@kline_${interval}`);
 
-      const candle: CandleData = {
-        time: k.t / 1000,
-        open: parseFloat(k.o),
-        high: parseFloat(k.h),
-        low: parseFloat(k.l),
-        close: parseFloat(k.c)
-      };
+    ws.onopen = () => {
+      console.log(`✅ Kline WebSocket Connected (${symbol} ${interval})`);
+    };
 
-      callback(candle);
-    } catch (e) {
-      console.error("Kline WS Error:", e);
-    }
+    ws.onmessage = (event) => {
+      try {
+        const msg = JSON.parse(event.data);
+        const k = msg.k; // kline object
+
+        if (!k) return;
+
+        const candle: CandleData = {
+          time: k.t / 1000,
+          open: parseFloat(k.o),
+          high: parseFloat(k.h),
+          low: parseFloat(k.l),
+          close: parseFloat(k.c)
+        };
+
+        callback(candle);
+      } catch (e) {
+        console.error("Kline WS Message Error:", e);
+      }
+    };
+
+    ws.onerror = (err) => {
+      console.error(`Kline WS Error (${symbol}):`, err);
+    };
+
+    ws.onclose = () => {
+      if (shouldReconnect) {
+        console.log(`⚠️ Kline WebSocket closed (${symbol}). Reconnecting in 5s...`);
+        reconnectTimeout = setTimeout(connect, 5000);
+      }
+    };
   };
 
-  return () => ws.close();
+  connect();
+
+  return () => {
+    shouldReconnect = false;
+    if (ws) ws.close();
+    if (reconnectTimeout) clearTimeout(reconnectTimeout);
+  };
 };
