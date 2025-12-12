@@ -324,3 +324,83 @@ export function subscribeToLogs(callback: (log: LogEntry) => void) {
         supabase.removeChannel(channel);
     };
 }
+
+// Bot Strategies
+export interface StrategyConfig {
+    sma: boolean;
+    meanReversion: boolean;
+    momentum: boolean;
+    prediction: boolean;
+    ema: boolean;
+}
+
+export async function fetchStrategies(): Promise<StrategyConfig> {
+    const { data, error } = await supabase
+        .from('bot_strategies')
+        .select('*');
+
+    if (error) {
+        console.error('Error fetching strategies:', error);
+        // Return defaults if error
+        return { sma: true, meanReversion: true, momentum: true, prediction: true, ema: true };
+    }
+
+    // Convert rows to object
+    const config: StrategyConfig = {
+        sma: true,
+        meanReversion: true,
+        momentum: true,
+        prediction: true,
+        ema: true
+    };
+
+    if (data) {
+        data.forEach((row: any) => {
+            if (row.strategy_name === 'sma') config.sma = row.is_active;
+            if (row.strategy_name === 'meanReversion') config.meanReversion = row.is_active;
+            if (row.strategy_name === 'momentum') config.momentum = row.is_active;
+            if (row.strategy_name === 'prediction') config.prediction = row.is_active;
+            if (row.strategy_name === 'ema') config.ema = row.is_active;
+        });
+    }
+
+    return config;
+}
+
+export function subscribeToStrategies(callback: (strategy: { name: string, isActive: boolean }) => void) {
+    const channel = supabase
+        .channel('bot-strategies')
+        .on(
+            'postgres_changes',
+            { event: '*', schema: 'public', table: 'bot_strategies' },
+            (payload) => {
+                const newData = payload.new as any;
+                if (newData) {
+                    callback({
+                        name: newData.strategy_name,
+                        isActive: newData.is_active
+                    });
+                }
+            }
+        )
+        .subscribe();
+
+    return () => {
+        supabase.removeChannel(channel);
+    };
+}
+
+export async function updateStrategy(name: string, isActive: boolean): Promise<void> {
+    const { error } = await supabase
+        .from('bot_strategies')
+        .upsert({
+            strategy_name: name,
+            is_active: isActive,
+            updated_at: new Date().toISOString()
+        });
+
+    if (error) {
+        console.error(`Error updating strategy ${name}:`, error);
+        throw error;
+    }
+}

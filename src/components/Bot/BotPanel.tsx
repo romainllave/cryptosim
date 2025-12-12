@@ -7,6 +7,8 @@ export interface StrategySelection {
     sma: boolean;
     meanReversion: boolean;
     momentum: boolean;
+    prediction: boolean;
+    ema: boolean;
 }
 
 interface BotPanelProps {
@@ -116,7 +118,7 @@ export const BotPanel: React.FC<BotPanelProps> = ({
             {/* Strategy Selection */}
             <div className="mb-4">
                 <h4 className="text-xs font-semibold text-text-secondary mb-2 dark:text-[#787b86]">
-                    Stratégies actives ({enabledCount}/3)
+                    Stratégies actives ({enabledCount}/5)
                 </h4>
                 <div className="flex flex-wrap gap-2">
                     <StrategyToggle
@@ -138,6 +140,20 @@ export const BotPanel: React.FC<BotPanelProps> = ({
                         emoji="🚀"
                         enabled={strategies.momentum}
                         onToggle={() => toggleStrategy('momentum')}
+                        disabled={isRunning}
+                    />
+                    <StrategyToggle
+                        name="Prediction"
+                        emoji="🔮"
+                        enabled={strategies.prediction}
+                        onToggle={() => toggleStrategy('prediction')}
+                        disabled={isRunning}
+                    />
+                    <StrategyToggle
+                        name="EMA Trend"
+                        emoji="📊"
+                        enabled={strategies.ema}
+                        onToggle={() => toggleStrategy('ema')}
                         disabled={isRunning}
                     />
                 </div>

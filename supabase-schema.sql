@@ -99,4 +99,33 @@ ALTER TABLE bot_logs ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Allow all for bot_logs" ON bot_logs FOR ALL USING (true) WITH CHECK (true);
 
 -- Enable Realtime for bot_logs
-ALTER PUBLICATION supabase_realtime ADD TABLE bot_logs;
+
+-- Bot Strategies Table
+CREATE TABLE IF NOT EXISTS bot_strategies (
+    strategy_name TEXT PRIMARY KEY,
+    is_active BOOLEAN DEFAULT TRUE,
+    config JSONB DEFAULT '{}'::jsonb,
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Insert default strategies
+INSERT INTO bot_strategies (strategy_name, is_active) VALUES 
+('sma', true),
+('meanReversion', true),
+('momentum', true)
+ON CONFLICT (strategy_name) DO NOTHING;
+
+-- Enable RLS for bot_strategies
+ALTER TABLE bot_strategies ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow all for bot_strategies" ON bot_strategies FOR ALL USING (true) WITH CHECK (true);
+
+-- Enable Realtime for bot_strategies
+ALTER PUBLICATION supabase_realtime ADD TABLE bot_strategies;
+
+-- Insert new strategies (Prediction and EMA)
+INSERT INTO bot_strategies (strategy_name, is_active)
+VALUES
+  ('prediction', true),
+  ('ema', true)
+ON CONFLICT (strategy_name) DO NOTHING;
+

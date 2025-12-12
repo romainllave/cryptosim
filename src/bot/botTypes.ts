@@ -15,6 +15,8 @@ export interface BotConfig {
         sma: boolean;
         meanReversion: boolean;
         momentum: boolean;
+        prediction: boolean;
+        ema: boolean;
     };
 }
 

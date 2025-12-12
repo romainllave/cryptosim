@@ -1,6 +1,6 @@
 import type { CandleData } from '../utils/chartData';
 import type { BotState, BotConfig, Signal, StrategyResult } from './botTypes';
-import { smaCrossover, meanReversion, momentum, aggregateSignals } from './strategies';
+import { smaCrossover, meanReversion, momentum, linearRegressionPrediction, emaStrategy, aggregateSignals } from './strategies';
 
 export type TradeCallback = (type: 'BUY' | 'SELL', amount: number, reason: string) => void;
 
@@ -19,7 +19,9 @@ export class TradingBot {
             strategies: {
                 sma: true,
                 meanReversion: true,
-                momentum: true
+                momentum: true,
+                prediction: true,
+                ema: true
             },
             ...config
         };
@@ -93,6 +95,12 @@ export class TradingBot {
         }
         if (this.config.strategies.momentum) {
             results.push(momentum(candles));
+        }
+        if (this.config.strategies.prediction) {
+            results.push(linearRegressionPrediction(candles));
+        }
+        if (this.config.strategies.ema) {
+            results.push(emaStrategy(candles));
         }
 
         this.state.lastAnalysis = results;

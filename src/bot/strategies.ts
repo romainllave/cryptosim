@@ -122,10 +122,112 @@ export function momentum(candles: CandleData[], period: number = 5): StrategyRes
     return { strategy: 'Momentum', signal, confidence };
 }
 
+
+/**
+ * Linear Regression Prediction Strategy
+ * Predicts the next price based on the trend of the last N candles.
+ * BUY if predicted price > current price (Uptrend)
+ * SELL if predicted price < current price (Downtrend)
+ */
+export function linearRegressionPrediction(candles: CandleData[], period: number = 400): StrategyResult {
+    if (candles.length < period) {
+        return { strategy: 'Prediction (LinReg)', signal: 'HOLD', confidence: 0 };
+    }
+
+    const recentCandles = candles.slice(-period);
+    const n = recentCandles.length;
+
+    // Simple Linear Regression: y = mx + c
+    // x = time index (0 to n-1), y = close price
+    let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+
+    for (let i = 0; i < n; i++) {
+        const y = recentCandles[i].close;
+        sumX += i;
+        sumY += y;
+        sumXY += (i * y);
+        sumX2 += (i * i);
+    }
+
+    const m = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+    const c = (sumY - m * sumX) / n;
+
+    // Predict next price (at index n)
+    const predictedPrice = m * n + c;
+    const currentPrice = recentCandles[n - 1].close;
+
+    // Calculate confidence based on slope strength (percent change predicted)
+    // If slope is steep, higher confidence
+    const percentChange = ((predictedPrice - currentPrice) / currentPrice) * 100;
+    const confidence = Math.min(Math.abs(percentChange) * 500, 100); // Scale factor
+
+    let signal: Signal = 'HOLD';
+
+    // Simple threshold for prediction
+    if (predictedPrice > currentPrice * 1.0005) { // Expecting at least 0.05% rise
+        signal = 'BUY';
+    } else if (predictedPrice < currentPrice * 0.9995) { // Expecting at least 0.05% fall
+        signal = 'SELL';
+    }
+
+    return { strategy: 'Prediction (LinReg)', signal, confidence };
+}
+
+/**
+ * EMA (Exponential Moving Average) Strategy
+ * Trend Following:
+ * BUY if Price > EMA
+ * SELL if Price < EMA
+ */
+export function emaStrategy(candles: CandleData[], period: number = 20): StrategyResult {
+    if (candles.length < period) {
+        return { strategy: 'EMA Trend', signal: 'HOLD', confidence: 0 };
+    }
+
+    // Calculate EMA
+    // Multiplier: k = 2 / (N + 1)
+    // EMA_today = (Price_today * k) + (EMA_yesterday * (1-k))
+    // Initialize with SMA
+    const k = 2 / (period + 1);
+
+    // Start with SMA for the first 'period' candles to get initial EMA value
+    // But efficiently, we can just calculate EMA for the last N*2 candles to let it stabilize
+    let ema = candles[0].close;
+    const lookback = Math.min(candles.length, period * 5); // Lookback enough for EMA stability
+    const startIdx = candles.length - lookback;
+
+    // Fast forward to start index (approximate prior EMA as SMA or just price)
+    // Better: Calculate SMA of first chunk if possible, or just iterate.
+    // We will just iterate from startIdx assuming initial EMA ~ Price[startIdx]
+    ema = candles[startIdx].close;
+
+    for (let i = startIdx + 1; i < candles.length; i++) {
+        ema = (candles[i].close * k) + (ema * (1 - k));
+    }
+
+    const currentPrice = candles[candles.length - 1].close;
+
+    // Distance from EMA
+    const distance = Math.abs((currentPrice - ema) / ema) * 100;
+    const confidence = Math.min(distance * 20, 100);
+
+    let signal: Signal = 'HOLD';
+
+    // Trend following
+    if (currentPrice > ema) {
+        signal = 'BUY';
+    } else if (currentPrice < ema) {
+        signal = 'SELL';
+    }
+
+    return { strategy: 'EMA Trend', signal, confidence };
+}
+
 /**
  * Aggregate signals from all strategies using majority vote
  */
 export function aggregateSignals(results: StrategyResult[]): Signal {
+
     const buyCount = results.filter(r => r.signal === 'BUY').length;
     const sellCount = results.filter(r => r.signal === 'SELL').length;
 

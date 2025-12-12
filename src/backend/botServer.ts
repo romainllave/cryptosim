@@ -6,7 +6,7 @@ import http from 'http';
 // @ts-ignore
 global.WebSocket = WebSocket;
 
-import { TradingBot } from '../bot/botEngine'; // Note: check path relative to this file
+import { TradingBot } from '../bot/botEngine';
 import { fetchKlines, subscribeToKline } from '../services/binance';
 import {
     saveTrade,
@@ -15,7 +15,9 @@ import {
     updateBotStatus,
     getBalance,
     updateBalance,
-    saveLog
+    saveLog,
+    fetchStrategies,
+    subscribeToStrategies
 } from '../services/supabase';
 import type { BotCommand } from '../services/supabase';
 import type { CandleData } from '../utils/chartData';
@@ -44,15 +46,40 @@ async function main() {
         enabled: false // Start disabled, wait for command
     });
 
-    // Ensure status is synced as IDLE on startup
-    await updateBotStatus('IDLE', 'BTC');
-
     // Helper for logging to DB + Console
     const log = (type: 'info' | 'success' | 'warning' | 'error' | 'trade' | 'signal', msg: string) => {
         console.log(`[${type.toUpperCase()}] ${msg}`);
         // Fire and forget log save
         saveLog(type, msg).catch(err => console.error('Failed to save log:', err));
     };
+
+    // Load Strategies from DB
+    try {
+        const strategies = await fetchStrategies();
+        bot.setStrategies(strategies);
+        console.log('✅ Strategies loaded from DB:', strategies);
+    } catch (err) {
+        console.error('❌ Failed to load strategies:', err);
+    }
+
+    // Subscribe to Strategy Updates
+    subscribeToStrategies((update) => {
+        const currentStrategies = bot.getConfig().strategies;
+        // @ts-ignore - Dynamic key access
+        if (currentStrategies[update.name] !== undefined) {
+            const newStrategies = {
+                ...currentStrategies,
+                [update.name]: update.isActive
+            };
+            bot.setStrategies(newStrategies);
+            const statusMsg = update.isActive ? 'ACTIVE' : 'INACTIVE';
+            console.log(`⚙️ Strategy updated: ${update.name} is now ${statusMsg}`);
+            saveLog('info', `⚙️ Strategy updated: ${update.name} is now ${statusMsg}`).catch(console.error);
+        }
+    });
+
+    // Ensure status is synced as IDLE on startup
+    await updateBotStatus('IDLE', 'BTC');
 
     console.log('🤖 Bot initialized. Waiting for commands...');
     log('info', 'Bot Service initialized. Waiting for commands...');
@@ -101,13 +128,7 @@ async function main() {
             if (bot.isRunning()) {
                 const results = bot.analyze(candles);
 
-                // We want to send notifications periodically or on significant change.
-                // The previous simulation simplified this by notifying on every major decision or interval.
-                // Let's implement a 'heartbeat' log every 5 minutes (similar to simulation)
-                // OR log every time a trade happens (which is covered by TradeCallback).
-                // But the user said "bot analyze plus", implying they don't see logs.
-                // Let's add a periodic log "Analyzing market..." every ~10s or 5m?
-                // Actually, let's use a simpler approach: Log analysis summary every 5 minutes.
+                // We could log analysis here but we rely on heartbeat for summary
             }
         });
 
@@ -127,8 +148,8 @@ async function main() {
             sendDiscordReport({
                 symbol: currentSymbol,
                 smaScore: 50, // Placeholder
-                meanRevScore: 50,
-                momentumScore: 50,
+                meanRevScore: 50, // Placeholder
+                momentumScore: 50, // Placeholder
                 probability: 50,
                 action: 'HOLD',
                 balance: currentBalance
@@ -212,7 +233,7 @@ async function main() {
 
             if (cmd.strategies) {
                 bot.setStrategies(cmd.strategies);
-                log('info', '⚙️ Strategies updated');
+                log('info', '⚙️ Strategies updated via Command');
             }
 
             bot.start();

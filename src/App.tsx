@@ -23,7 +23,9 @@ import {
   getUserSettings,
   updateUserSettings,
   getTrades,
-  getBalance
+  getBalance,
+  fetchStrategies,
+  updateStrategy
 } from './services/supabase';
 import type { BotTrade } from './services/supabase';
 
@@ -35,6 +37,7 @@ function App() {
   const [balance, setBalance] = useState<number>(10000); // Default, will verify with DB
   const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
   const [showSMA, setShowSMA] = useState<boolean>(false);
+  const [timeframe, setTimeframe] = useState<'1m' | '15m'>('1m');
 
   // Bot state (Synced with Supabase)
   const [botState, setBotState] = useState<BotState>({
@@ -50,13 +53,15 @@ function App() {
     tradeAmount: 0.001,
     symbol: 'BTC',
     enabled: false,
-    strategies: { sma: true, meanReversion: true, momentum: true }
+    strategies: { sma: true, meanReversion: true, momentum: true, prediction: true, ema: true }
   });
 
   const [strategies, setStrategies] = useState<StrategySelection>({
     sma: true,
     meanReversion: true,
-    momentum: true
+    momentum: true,
+    prediction: true,
+    ema: true
   });
 
   const smaData = useMemo(() => {
@@ -94,6 +99,11 @@ function App() {
         timestamp: new Date(t.created_at || Date.now())
       }));
       setTransactions(mappedTransactions);
+
+      // 4. Load Strategies
+      const dbStrategies = await fetchStrategies();
+      setStrategies(dbStrategies);
+      setBotConfig(prev => ({ ...prev, strategies: dbStrategies }));
     }
 
     initData();
@@ -172,12 +182,16 @@ function App() {
   // Fetch Historical Data & Subscribe to specific symbol Kline
   useEffect(() => {
     // 1. Fetch History
-    fetchKlines(selectedSymbol).then(data => {
+    // 1. Fetch History
+    // If 1m: fetch 200 (standard). If 15m: fetch 1500 (approx 2 weeks).
+    const limit = timeframe === '15m' ? 1500 : 200;
+
+    fetchKlines(selectedSymbol, timeframe, limit).then(data => {
       setCandleData(data);
     });
 
     // 2. Subscribe to Real-time Candle updates
-    const unsubscribeKline = subscribeToKline(selectedSymbol, '1m', (candle) => {
+    const unsubscribeKline = subscribeToKline(selectedSymbol, timeframe, (candle) => {
       setCandleData(prev => {
         if (prev.length === 0) return [candle];
         const last = prev[prev.length - 1];
@@ -193,7 +207,7 @@ function App() {
     return () => {
       unsubscribeKline();
     };
-  }, [selectedSymbol]);
+  }, [selectedSymbol, timeframe]);
 
   // Subscribe to Global Tickers for the sidebar list
   useEffect(() => {
@@ -353,6 +367,31 @@ function App() {
               >
                 SMA 20
               </button>
+
+              <div className="flex bg-gray-100 rounded p-0.5 ml-2 dark:bg-[#2a2e39]">
+                <button
+                  onClick={() => setTimeframe('1m')}
+                  className={clsx(
+                    "px-2 py-1 text-xs font-semibold rounded transition-all",
+                    timeframe === '1m'
+                      ? "bg-white text-blue-600 shadow-sm dark:bg-[#1e222d] dark:text-blue-400"
+                      : "text-text-secondary hover:text-text-primary dark:text-[#787b86] dark:hover:text-[#d1d4dc]"
+                  )}
+                >
+                  1m
+                </button>
+                <button
+                  onClick={() => setTimeframe('15m')}
+                  className={clsx(
+                    "px-2 py-1 text-xs font-semibold rounded transition-all",
+                    timeframe === '15m'
+                      ? "bg-white text-blue-600 shadow-sm dark:bg-[#1e222d] dark:text-blue-400"
+                      : "text-text-secondary hover:text-text-primary dark:text-[#787b86] dark:hover:text-[#d1d4dc]"
+                  )}
+                >
+                  15m
+                </button>
+              </div>
             </div>
             <TVChart
               data={candleData}
@@ -387,7 +426,19 @@ function App() {
             onStart={handleBotStart}
             onStop={handleBotStop}
             onTradeAmountChange={handleBotTradeAmountChange}
-            onStrategyChange={setStrategies}
+            onStrategyChange={(newStrategies) => {
+              setStrategies(newStrategies);
+              // Find changed strategy
+              Object.keys(newStrategies).forEach(key => {
+                const k = key as keyof StrategySelection;
+                if (newStrategies[k] !== strategies[k]) {
+                  // Only update the one that changed
+                  updateStrategy(k, newStrategies[k]).catch(console.error);
+                }
+              });
+              // Also update local bot config so it reflects immediately in UI if needed
+              setBotConfig(prev => ({ ...prev, strategies: newStrategies }));
+            }}
           />
         </div>
       </div>
