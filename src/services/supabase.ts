@@ -14,6 +14,8 @@ export interface BotCommand {
         sma: boolean;
         meanReversion: boolean;
         momentum: boolean;
+        prediction?: boolean;
+        ema?: boolean;
     };
     created_at?: string;
     processed?: boolean;
@@ -40,7 +42,7 @@ export interface Portfolio {
 export async function sendBotCommand(
     command: 'start' | 'stop',
     symbol: string,
-    strategies?: { sma: boolean; meanReversion: boolean; momentum: boolean; }
+    strategies?: { sma: boolean; meanReversion: boolean; momentum: boolean; prediction?: boolean; ema?: boolean; }
 ): Promise<void> {
     const { error } = await supabase
         .from('bot_commands')
