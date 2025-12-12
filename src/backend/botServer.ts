@@ -126,7 +126,7 @@ async function main() {
 
             // Run Analysis if Bot is Running
             if (bot.isRunning()) {
-                const results = bot.analyze(candles);
+                bot.analyze(candles);
 
                 // We could log analysis here but we rely on heartbeat for summary
             }
