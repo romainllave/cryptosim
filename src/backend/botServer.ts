@@ -21,6 +21,7 @@ import {
 } from '../services/supabase';
 import type { BotCommand } from '../services/supabase';
 import type { CandleData } from '../utils/chartData';
+import type { StrategyResult } from '../bot/botTypes';
 import { sendDiscordReport, sendTradeAlert } from '../services/discord';
 
 // Configuration
@@ -139,20 +140,33 @@ async function main() {
             if (!bot.isRunning() || candles.length === 0) return;
 
             const price = candles[candles.length - 1].close;
-            bot.analyze(candles); // Re-run analysis for reporting
+            const analysisResults = bot.analyze(candles); // Re-run analysis for reporting
             const currentBalance = await getBalance();
 
+            // Extract scores (default to 50 if missing)
+            const smaScore = analysisResults.find(r => r.strategy.includes('SMA'))?.confidence || 50;
+            const meanRevScore = analysisResults.find(r => r.strategy.includes('Mean Reversion'))?.confidence || 50;
+            const momentumScore = analysisResults.find(r => r.strategy.includes('Momentum'))?.confidence || 50;
+
+            // Calculate aggregated probability
+            const probability = (smaScore + meanRevScore + momentumScore) / 3;
+
+            // Determine Report Action (Visual only)
+            let action: 'BUY' | 'SELL' | 'HOLD' = 'HOLD';
+            if (probability > 70) action = 'BUY';
+            else if (probability < 30) action = 'SELL';
+
             // For now, let's log to DB so user sees "Analyzing"
-            log('info', `📊 Analyzing ${currentSymbol} @ $${price.toFixed(2)}...`);
+            log('info', `📊 Analyzing ${currentSymbol} @ $${price.toFixed(2)} | Confidence: ${probability.toFixed(1)}%`);
 
             // Send Discord Heartbeat (HOLD) report
             sendDiscordReport({
                 symbol: currentSymbol,
-                smaScore: 50, // Placeholder
-                meanRevScore: 50, // Placeholder
-                momentumScore: 50, // Placeholder
-                probability: 50,
-                action: 'HOLD',
+                smaScore,
+                meanRevScore,
+                momentumScore,
+                probability,
+                action,
                 balance: currentBalance
             }).catch(console.error);
 
