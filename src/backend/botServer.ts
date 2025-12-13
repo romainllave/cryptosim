@@ -21,7 +21,6 @@ import {
 } from '../services/supabase';
 import type { BotCommand } from '../services/supabase';
 import type { CandleData } from '../utils/chartData';
-import type { StrategyResult } from '../bot/botTypes';
 import { sendDiscordReport, sendTradeAlert } from '../services/discord';
 
 // Configuration
