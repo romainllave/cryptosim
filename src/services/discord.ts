@@ -8,6 +8,8 @@ interface AnalysisReport {
     smaScore: number;
     meanRevScore: number;
     momentumScore: number;
+    predictionScore?: number; // Added
+    emaScore?: number;        // Added
     probability: number;
     action: 'BUY' | 'SELL' | 'HOLD';
     tradeAmount?: number;
@@ -87,8 +89,17 @@ export async function sendDiscordReport(report: AnalysisReport): Promise<void> {
                 inline: true
             },
             {
-                name: '🚀 Momentum',
                 value: `${report.momentumScore.toFixed(1)}%`,
+                inline: true
+            },
+            {
+                name: '🔮 Prediction',
+                value: report.predictionScore !== undefined ? `${report.predictionScore.toFixed(1)}%` : 'N/A',
+                inline: true
+            },
+            {
+                name: '📊 EMA',
+                value: report.emaScore !== undefined ? `${report.emaScore.toFixed(1)}%` : 'N/A',
                 inline: true
             },
             {

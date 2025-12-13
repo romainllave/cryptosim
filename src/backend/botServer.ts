@@ -146,9 +146,23 @@ async function main() {
             const smaScore = analysisResults.find(r => r.strategy.includes('SMA'))?.confidence || 50;
             const meanRevScore = analysisResults.find(r => r.strategy.includes('Mean Reversion'))?.confidence || 50;
             const momentumScore = analysisResults.find(r => r.strategy.includes('Momentum'))?.confidence || 50;
+            const predictionScore = analysisResults.find(r => r.strategy.includes('Prediction'))?.confidence;
+            const emaScore = analysisResults.find(r => r.strategy.includes('EMA'))?.confidence;
 
             // Calculate aggregated probability
-            const probability = (smaScore + meanRevScore + momentumScore) / 3;
+            let totalScore = smaScore + meanRevScore + momentumScore;
+            let count = 3;
+
+            if (predictionScore !== undefined) {
+                totalScore += predictionScore;
+                count++;
+            }
+            if (emaScore !== undefined) {
+                totalScore += emaScore;
+                count++;
+            }
+
+            const probability = totalScore / count;
 
             // Determine Report Action (Visual only)
             let action: 'BUY' | 'SELL' | 'HOLD' = 'HOLD';
@@ -164,6 +178,8 @@ async function main() {
                 smaScore,
                 meanRevScore,
                 momentumScore,
+                predictionScore,
+                emaScore,
                 probability,
                 action,
                 balance: currentBalance
