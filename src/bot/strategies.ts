@@ -124,53 +124,216 @@ export function momentum(candles: CandleData[], period: number = 5): StrategyRes
 
 
 /**
- * Linear Regression Prediction Strategy
- * Predicts the next price based on the trend of the last N candles.
- * BUY if predicted price > current price (Uptrend)
- * SELL if predicted price < current price (Downtrend)
+ * ============================================
+ * HELPER FUNCTIONS FOR ADVANCED PREDICTION
+ * ============================================
  */
-export function linearRegressionPrediction(candles: CandleData[], period: number = 400): StrategyResult {
-    if (candles.length < period) {
-        return { strategy: 'Prediction (LinReg)', signal: 'HOLD', confidence: 0 };
+
+/**
+ * Calculate RSI (Relative Strength Index)
+ * Returns value between 0-100
+ */
+function calculateRSI(candles: CandleData[], period: number = 14): number {
+    if (candles.length < period + 1) return 50; // Neutral if not enough data
+
+    let gains = 0;
+    let losses = 0;
+
+    // Calculate initial average gain/loss
+    for (let i = candles.length - period; i < candles.length; i++) {
+        const change = candles[i].close - candles[i - 1].close;
+        if (change > 0) {
+            gains += change;
+        } else {
+            losses += Math.abs(change);
+        }
     }
 
-    const recentCandles = candles.slice(-period);
-    const n = recentCandles.length;
+    const avgGain = gains / period;
+    const avgLoss = losses / period;
 
-    // Simple Linear Regression: y = mx + c
-    // x = time index (0 to n-1), y = close price
-    let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+    if (avgLoss === 0) return 100; // All gains
 
-    for (let i = 0; i < n; i++) {
-        const y = recentCandles[i].close;
-        sumX += i;
-        sumY += y;
-        sumXY += (i * y);
-        sumX2 += (i * i);
+    const rs = avgGain / avgLoss;
+    const rsi = 100 - (100 / (1 + rs));
+
+    return rsi;
+}
+
+/**
+ * Calculate EMA (Exponential Moving Average)
+ */
+function calculateEMA(prices: number[], period: number): number {
+    if (prices.length < period) return prices[prices.length - 1];
+
+    const k = 2 / (period + 1);
+    let ema = prices[0];
+
+    for (let i = 1; i < prices.length; i++) {
+        ema = (prices[i] * k) + (ema * (1 - k));
     }
 
-    const m = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
-    const c = (sumY - m * sumX) / n;
+    return ema;
+}
 
-    // Predict next price (at index n)
-    const predictedPrice = m * n + c;
-    const currentPrice = recentCandles[n - 1].close;
+/**
+ * Calculate MACD
+ * Returns: { macd, signal, histogram }
+ */
+function calculateMACD(candles: CandleData[]): { macd: number; signal: number; histogram: number } {
+    const prices = candles.map(c => c.close);
 
-    // Calculate confidence based on slope strength (percent change predicted)
-    // If slope is steep, higher confidence
-    const percentChange = ((predictedPrice - currentPrice) / currentPrice) * 100;
-    const confidence = Math.min(Math.abs(percentChange) * 500, 100); // Scale factor
+    if (prices.length < 26) {
+        return { macd: 0, signal: 0, histogram: 0 };
+    }
 
+    const ema12 = calculateEMA(prices, 12);
+    const ema26 = calculateEMA(prices, 26);
+    const macd = ema12 - ema26;
+
+    // Calculate signal line (9-period EMA of MACD)
+    // For simplicity, we'll calculate MACD for last 9 periods and get EMA
+    const macdValues: number[] = [];
+    for (let i = Math.max(0, prices.length - 9); i < prices.length; i++) {
+        const slice = prices.slice(0, i + 1);
+        const e12 = calculateEMA(slice, 12);
+        const e26 = calculateEMA(slice, 26);
+        macdValues.push(e12 - e26);
+    }
+
+    const signal = calculateEMA(macdValues, 9);
+    const histogram = macd - signal;
+
+    return { macd, signal, histogram };
+}
+
+/**
+ * Analyze trend over a period
+ * Returns score 0-100 (0 = very bearish, 100 = very bullish)
+ */
+function analyzeTrend(candles: CandleData[]): number {
+    if (candles.length < 10) return 50;
+
+    // 1. Count green vs red candles
+    let greenCandles = 0;
+    for (const candle of candles) {
+        if (candle.close > candle.open) greenCandles++;
+    }
+    const greenRatio = greenCandles / candles.length;
+
+    // 2. Calculate price change over period
+    const startPrice = candles[0].close;
+    const endPrice = candles[candles.length - 1].close;
+    const priceChange = ((endPrice - startPrice) / startPrice) * 100;
+
+    // 3. Calculate EMA slope (is EMA going up or down?)
+    const prices = candles.map(c => c.close);
+    const emaShort = calculateEMA(prices.slice(-20), 10);
+    const emaMid = calculateEMA(prices.slice(-50), 20);
+
+    let emaScore = 50;
+    if (emaShort > emaMid) {
+        emaScore = 50 + Math.min((emaShort / emaMid - 1) * 1000, 30); // Up to +30
+    } else {
+        emaScore = 50 - Math.min((1 - emaShort / emaMid) * 1000, 30); // Down to -30
+    }
+
+    // Combine scores
+    const greenScore = greenRatio * 100; // 0-100 based on green candle ratio
+    const priceScore = 50 + Math.max(-25, Math.min(25, priceChange * 5)); // -25 to +25 added to 50
+
+    // Weighted average
+    const trendScore = (greenScore * 0.3) + (priceScore * 0.3) + (emaScore * 0.4);
+
+    return Math.max(0, Math.min(100, trendScore));
+}
+
+/**
+ * ============================================
+ * MAIN PREDICTION STRATEGY
+ * ============================================
+ * 
+ * Analyzes up to 2 weeks of data and makes a prediction.
+ * 
+ * - Pronostic >= 55%: Signal BUY (open position with 0-10% of portfolio)
+ * - Pronostic <= 45%: Signal SELL (close positions from this strategy)
+ * - 45% < Pronostic < 55%: HOLD (do nothing)
+ * 
+ * Sizing is based on prediction strength:
+ * - 55-60% → ~2% of portfolio
+ * - 60-70% → ~5% of portfolio  
+ * - 70-80% → ~7% of portfolio
+ * - 80%+ → ~10% of portfolio
+ */
+export function advancedPrediction(candles: CandleData[], period: number = 500): StrategyResult {
+    // Need at least some data to make a prediction
+    // 500 candles at 1min = ~8 hours. For 2 weeks we'd need 4h candles or aggregate
+    if (candles.length < 50) {
+        return { strategy: 'Prediction', signal: 'HOLD', confidence: 50 };
+    }
+
+    // Use available candles (up to 'period' most recent)
+    const analysisCandles = candles.slice(-Math.min(period, candles.length));
+
+    // ========== 1. TREND ANALYSIS (40% weight) ==========
+    const trendScore = analyzeTrend(analysisCandles);
+
+    // ========== 2. RSI ANALYSIS (30% weight) ==========
+    const rsi = calculateRSI(analysisCandles, 14);
+    let rsiScore = 50;
+
+    if (rsi < 30) {
+        // Oversold = bullish signal
+        rsiScore = 70 + ((30 - rsi) / 30) * 30; // 70-100
+    } else if (rsi < 45) {
+        // Slightly oversold
+        rsiScore = 55 + ((45 - rsi) / 15) * 15; // 55-70
+    } else if (rsi > 70) {
+        // Overbought = bearish signal
+        rsiScore = 30 - ((rsi - 70) / 30) * 30; // 0-30
+    } else if (rsi > 55) {
+        // Slightly overbought
+        rsiScore = 45 - ((rsi - 55) / 15) * 15; // 30-45
+    } else {
+        // Neutral zone (45-55)
+        rsiScore = 50;
+    }
+
+    // ========== 3. MACD ANALYSIS (30% weight) ==========
+    const { histogram } = calculateMACD(analysisCandles);
+    let macdScore = 50;
+
+    // Normalize histogram to a score
+    const avgPrice = analysisCandles[analysisCandles.length - 1].close;
+    const normalizedHistogram = (histogram / avgPrice) * 10000; // Normalize relative to price
+
+    if (normalizedHistogram > 0) {
+        // Bullish momentum
+        macdScore = 50 + Math.min(normalizedHistogram * 10, 50); // 50-100
+    } else {
+        // Bearish momentum
+        macdScore = 50 + Math.max(normalizedHistogram * 10, -50); // 0-50
+    }
+
+    // ========== COMBINE ALL SCORES ==========
+    const pronostic = (trendScore * 0.40) + (rsiScore * 0.30) + (macdScore * 0.30);
+
+    // ========== GENERATE SIGNAL ==========
     let signal: Signal = 'HOLD';
 
-    // Simple threshold for prediction
-    if (predictedPrice > currentPrice * 1.0005) { // Expecting at least 0.05% rise
+    if (pronostic >= 55) {
         signal = 'BUY';
-    } else if (predictedPrice < currentPrice * 0.9995) { // Expecting at least 0.05% fall
+    } else if (pronostic <= 45) {
         signal = 'SELL';
     }
 
-    return { strategy: 'Prediction (LinReg)', signal, confidence };
+    console.log(`📊 Prediction Analysis: Trend=${trendScore.toFixed(1)} RSI=${rsiScore.toFixed(1)} MACD=${macdScore.toFixed(1)} → Pronostic=${pronostic.toFixed(1)}%`);
+
+    return {
+        strategy: 'Prediction',
+        signal,
+        confidence: Math.min(100, Math.max(0, pronostic)) // Return pronostic as confidence for sizing
+    };
 }
 
 /**
