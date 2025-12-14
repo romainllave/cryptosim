@@ -27,6 +27,55 @@ export interface TradeAlertReport {
     profitPercent?: number;
 }
 
+export interface OpportunityAlert {
+    symbol: string;
+    probability: number;
+    action: 'BUY' | 'SELL';
+    price: number;
+    smaScore: number;
+    meanRevScore: number;
+    momentumScore: number;
+    predictionScore?: number;
+    emaScore?: number;
+}
+
+export async function sendOpportunityAlert(alert: OpportunityAlert): Promise<void> {
+    const isBuy = alert.action === 'BUY';
+    const color = isBuy ? 0x00ff00 : 0xff9900; // Green for Buy opportunity, Orange for Sell
+    const emoji = isBuy ? '🚀' : '⚠️';
+    const title = `${emoji} OPPORTUNITÉ ${alert.action} DÉTECTÉE: ${alert.symbol}`;
+
+    const embed = {
+        title,
+        color,
+        description: `**Probabilité: ${alert.probability.toFixed(1)}%** - ${isBuy ? 'Signal haussier détecté!' : 'Signal baissier détecté!'}`,
+        fields: [
+            { name: '💰 Prix Actuel', value: `$${alert.price.toFixed(2)}`, inline: true },
+            { name: '📈 SMA', value: `${alert.smaScore.toFixed(1)}%`, inline: true },
+            { name: '📉 Mean Rev', value: `${alert.meanRevScore.toFixed(1)}%`, inline: true },
+            { name: '🚀 Momentum', value: `${alert.momentumScore.toFixed(1)}%`, inline: true },
+            { name: '🔮 Prediction', value: alert.predictionScore !== undefined ? `${alert.predictionScore.toFixed(1)}%` : 'N/A', inline: true },
+            { name: '📊 EMA', value: alert.emaScore !== undefined ? `${alert.emaScore.toFixed(1)}%` : 'N/A', inline: true },
+        ],
+        footer: { text: '🤖 CryptoSim Bot - Analyse Continue' },
+        timestamp: new Date().toISOString()
+    };
+
+    try {
+        await fetch(DISCORD_WEBHOOK_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                username: '🚨 Opportunity Alert',
+                embeds: [embed]
+            })
+        });
+        console.log('Opportunity alert sent to Discord');
+    } catch (error) {
+        console.error('Failed to send Discord opportunity alert:', error);
+    }
+}
+
 export async function sendTradeAlert(alert: TradeAlertReport): Promise<void> {
     const isBuy = alert.type === 'BUY';
     const color = isBuy ? 0x00ff00 : 0xff0000; // Green for Buy, Red for Sell

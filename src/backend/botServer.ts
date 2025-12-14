@@ -21,7 +21,7 @@ import {
 } from '../services/supabase';
 import type { BotCommand } from '../services/supabase';
 import type { CandleData } from '../utils/chartData';
-import { sendDiscordReport, sendTradeAlert } from '../services/discord';
+import { sendDiscordReport, sendTradeAlert, sendOpportunityAlert } from '../services/discord';
 
 // Configuration
 const PORT = process.env.PORT || 3000;
@@ -90,6 +90,8 @@ async function main() {
     let cleanupBinance: (() => void) | null = null;
     let heartbeatInterval: NodeJS.Timeout | null = null;
     let lastBuyPrice: number | null = null; // Track entry price for profit calc
+    let lastOpportunityAlertTime: number = 0; // Cooldown for opportunity alerts
+    const OPPORTUNITY_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes cooldown
 
     // Helper to switch symbol
     const switchSymbol = async (newSymbol: string) => {
@@ -109,8 +111,8 @@ async function main() {
         console.log(`✅ Loaded ${candles.length} candles.`);
         log('info', `Switched to ${newSymbol}. Loaded ${candles.length} candles.`);
 
-        // 2. Subscribe to Real-time updates
-        cleanupBinance = subscribeToKline(newSymbol, '1m', (candle) => {
+        // 2. Subscribe to Real-time updates with CONTINUOUS ANALYSIS
+        cleanupBinance = subscribeToKline(newSymbol, '1m', async (candle) => {
             // Update candle history
             if (candles.length > 0) {
                 const last = candles[candles.length - 1];
@@ -125,11 +127,67 @@ async function main() {
                 candles.push(candle);
             }
 
-            // Run Analysis if Bot is Running
-            if (bot.isRunning()) {
-                bot.analyze(candles);
+            // ========== CONTINUOUS MARKET ANALYSIS ==========
+            // Always analyze the market, even if bot is not running (for opportunity detection)
+            if (candles.length >= 50) {
+                const analysisResults = bot.analyze(candles);
 
-                // We could log analysis here but we rely on heartbeat for summary
+                // Calculate probability
+                const smaScore = analysisResults.find(r => r.strategy.includes('SMA'))?.confidence || 50;
+                const meanRevScore = analysisResults.find(r => r.strategy.includes('Mean Reversion'))?.confidence || 50;
+                const momentumScore = analysisResults.find(r => r.strategy.includes('Momentum'))?.confidence || 50;
+                const predictionScore = analysisResults.find(r => r.strategy.includes('Prediction'))?.confidence;
+                const emaScore = analysisResults.find(r => r.strategy.includes('EMA'))?.confidence;
+
+                let totalScore = smaScore + meanRevScore + momentumScore;
+                let count = 3;
+                if (predictionScore !== undefined) { totalScore += predictionScore; count++; }
+                if (emaScore !== undefined) { totalScore += emaScore; count++; }
+                const probability = totalScore / count;
+
+                // ========== OPPORTUNITY DETECTION (Seuil: 51% BUY, <49% SELL) ==========
+                const now = Date.now();
+                const canSendAlert = (now - lastOpportunityAlertTime) > OPPORTUNITY_COOLDOWN_MS;
+
+                if (canSendAlert) {
+                    if (probability > 51) {
+                        // BUY Opportunity detected!
+                        console.log(`🚀 OPPORTUNITY DETECTED: BUY signal at ${probability.toFixed(1)}%`);
+                        log('signal', `🚀 Opportunité BUY détectée! Probabilité: ${probability.toFixed(1)}%`);
+
+                        sendOpportunityAlert({
+                            symbol: currentSymbol,
+                            probability,
+                            action: 'BUY',
+                            price: candle.close,
+                            smaScore,
+                            meanRevScore,
+                            momentumScore,
+                            predictionScore,
+                            emaScore
+                        }).catch(console.error);
+
+                        lastOpportunityAlertTime = now;
+                    } else if (probability < 49) {
+                        // SELL Opportunity detected!
+                        console.log(`⚠️ OPPORTUNITY DETECTED: SELL signal at ${probability.toFixed(1)}%`);
+                        log('signal', `⚠️ Opportunité SELL détectée! Probabilité: ${probability.toFixed(1)}%`);
+
+                        sendOpportunityAlert({
+                            symbol: currentSymbol,
+                            probability,
+                            action: 'SELL',
+                            price: candle.close,
+                            smaScore,
+                            meanRevScore,
+                            momentumScore,
+                            predictionScore,
+                            emaScore
+                        }).catch(console.error);
+
+                        lastOpportunityAlertTime = now;
+                    }
+                }
             }
         });
 
