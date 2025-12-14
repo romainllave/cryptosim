@@ -321,9 +321,9 @@ export function advancedPrediction(candles: CandleData[], period: number = 500):
     // ========== GENERATE SIGNAL ==========
     let signal: Signal = 'HOLD';
 
-    if (pronostic >= 55) {
+    if (pronostic >= 53) {
         signal = 'BUY';
-    } else if (pronostic <= 45) {
+    } else if (pronostic <= 47) {
         signal = 'SELL';
     }
 
