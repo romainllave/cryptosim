@@ -89,6 +89,7 @@ export async function sendDiscordReport(report: AnalysisReport): Promise<void> {
                 inline: true
             },
             {
+                name: '🚀 Momentum',
                 value: `${report.momentumScore.toFixed(1)}%`,
                 inline: true
             },
