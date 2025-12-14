@@ -135,12 +135,22 @@ async function main() {
 
         // Periodic Analysis Reporting (Heartbeat & Discord)
         // This runs separately from the real-time tick analysis to give user feedback
-        heartbeatInterval = setInterval(async () => {
-            if (!bot.isRunning() || candles.length === 0) return;
+
+        // Helper function to send analysis report
+        const sendAnalysisReport = async () => {
+            if (!bot.isRunning() || candles.length === 0) {
+                console.log('⏭️ Skipping report: Bot not running or no candles');
+                return;
+            }
 
             const price = candles[candles.length - 1].close;
             const analysisResults = bot.analyze(candles); // Re-run analysis for reporting
             const currentBalance = await getBalance();
+
+            console.log(`📊 Analysis results: ${analysisResults.length} strategies`);
+            analysisResults.forEach(r => {
+                console.log(`   - ${r.strategy}: ${r.signal} (${r.confidence.toFixed(1)}%)`);
+            });
 
             // Extract scores (default to 50 if missing)
             const smaScore = analysisResults.find(r => r.strategy.includes('SMA'))?.confidence || 50;
@@ -148,6 +158,8 @@ async function main() {
             const momentumScore = analysisResults.find(r => r.strategy.includes('Momentum'))?.confidence || 50;
             const predictionScore = analysisResults.find(r => r.strategy.includes('Prediction'))?.confidence;
             const emaScore = analysisResults.find(r => r.strategy.includes('EMA'))?.confidence;
+
+            console.log(`📈 Scores - SMA: ${smaScore}, MeanRev: ${meanRevScore}, Momentum: ${momentumScore}, Prediction: ${predictionScore ?? 'N/A'}, EMA: ${emaScore ?? 'N/A'}`);
 
             // Calculate aggregated probability
             let totalScore = smaScore + meanRevScore + momentumScore;
@@ -172,20 +184,27 @@ async function main() {
             // For now, let's log to DB so user sees "Analyzing"
             log('info', `📊 Analyzing ${currentSymbol} @ $${price.toFixed(2)} | Confidence: ${probability.toFixed(1)}%`);
 
-            // Send Discord Heartbeat (HOLD) report
-            sendDiscordReport({
-                symbol: currentSymbol,
-                smaScore,
-                meanRevScore,
-                momentumScore,
-                predictionScore,
-                emaScore,
-                probability,
-                action,
-                balance: currentBalance
-            }).catch(console.error);
+            // Send Discord Heartbeat report
+            console.log('📤 Sending Discord report...');
+            try {
+                await sendDiscordReport({
+                    symbol: currentSymbol,
+                    smaScore,
+                    meanRevScore,
+                    momentumScore,
+                    predictionScore,
+                    emaScore,
+                    probability,
+                    action,
+                    balance: currentBalance
+                });
+                console.log('✅ Discord report sent successfully');
+            } catch (error) {
+                console.error('❌ Failed to send Discord report:', error);
+            }
+        };
 
-        }, 60000); // Log every 1 minute
+        heartbeatInterval = setInterval(sendAnalysisReport, 60000); // Log every 1 minute
     };
 
     // Initial setup
@@ -312,6 +331,42 @@ async function main() {
 
             // Run immediate analysis
             bot.analyze(candles);
+
+            // Send immediate Discord report on start
+            console.log('🚀 Sending initial Discord report after start...');
+            if (candles.length > 0) {
+                const analysisResults = bot.analyze(candles);
+                const currentBalance = await getBalance();
+
+                const smaScore = analysisResults.find(r => r.strategy.includes('SMA'))?.confidence || 50;
+                const meanRevScore = analysisResults.find(r => r.strategy.includes('Mean Reversion'))?.confidence || 50;
+                const momentumScore = analysisResults.find(r => r.strategy.includes('Momentum'))?.confidence || 50;
+                const predictionScore = analysisResults.find(r => r.strategy.includes('Prediction'))?.confidence;
+                const emaScore = analysisResults.find(r => r.strategy.includes('EMA'))?.confidence;
+
+                let totalScore = smaScore + meanRevScore + momentumScore;
+                let count = 3;
+                if (predictionScore !== undefined) { totalScore += predictionScore; count++; }
+                if (emaScore !== undefined) { totalScore += emaScore; count++; }
+                const probability = totalScore / count;
+
+                let action: 'BUY' | 'SELL' | 'HOLD' = 'HOLD';
+                if (probability > 70) action = 'BUY';
+                else if (probability < 30) action = 'SELL';
+
+                sendDiscordReport({
+                    symbol: currentSymbol,
+                    smaScore,
+                    meanRevScore,
+                    momentumScore,
+                    predictionScore,
+                    emaScore,
+                    probability,
+                    action,
+                    balance: currentBalance
+                }).then(() => console.log('✅ Initial Discord report sent'))
+                    .catch(err => console.error('❌ Failed to send initial report:', err));
+            }
 
         } else if (cmd.command === 'stop') {
             bot.stop();
