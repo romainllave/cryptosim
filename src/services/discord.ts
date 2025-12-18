@@ -1,21 +1,5 @@
-// import fetch from 'node-fetch'; // Built-in in Node 18+
-
 const DISCORD_WEBHOOK_URL = 'https://discord.com/api/webhooks/1447912035861135512/mKUgVixg4qB9Tygy8yUqWalHe3Kt40bEDs2pf0xZmxElxNxydWzxhH84u6_yUdvQSlEG';
 const TRADE_WEBHOOK_URL = 'https://discord.com/api/webhooks/1448979753620082698/ZN57Aqn6NXN7ToKyBQ-TrGHqiZcipENJrHNol6aLWIbJlzZMyOcaq5JNXsfDTp2k-I8d';
-
-interface AnalysisReport {
-    symbol: string;
-    smaScore: number;
-    meanRevScore: number;
-    momentumScore: number;
-    predictionScore?: number; // Added
-    emaScore?: number;        // Added
-    probability: number;
-    action: 'BUY' | 'SELL' | 'HOLD';
-    tradeAmount?: number;
-    price?: number;
-    balance: number;
-}
 
 export interface TradeAlertReport {
     symbol: string;
@@ -27,37 +11,35 @@ export interface TradeAlertReport {
     profitPercent?: number;
 }
 
+export interface AnalysisReport {
+    symbol: string;
+    probability: number;
+    action: 'BUY' | 'SELL' | 'HOLD';
+    price?: number;
+    balance: number;
+}
+
 export interface OpportunityAlert {
     symbol: string;
     probability: number;
     action: 'BUY' | 'SELL';
     price: number;
-    smaScore: number;
-    meanRevScore: number;
-    momentumScore: number;
-    predictionScore?: number;
-    emaScore?: number;
 }
 
 export async function sendOpportunityAlert(alert: OpportunityAlert): Promise<void> {
     const isBuy = alert.action === 'BUY';
-    const color = isBuy ? 0x00ff00 : 0xff9900; // Green for Buy opportunity, Orange for Sell
+    const color = isBuy ? 0x00ff00 : 0xff9900;
     const emoji = isBuy ? '🚀' : '⚠️';
-    const title = `${emoji} OPPORTUNITÉ ${alert.action} DÉTECTÉE: ${alert.symbol}`;
 
     const embed = {
-        title,
+        title: `${emoji} OPPORTUNITÉ ${alert.action}: ${alert.symbol}`,
         color,
-        description: `**Probabilité: ${alert.probability.toFixed(1)}%** - ${isBuy ? 'Signal haussier détecté!' : 'Signal baissier détecté!'}`,
+        description: `**Confiance Stratégie: ${alert.probability.toFixed(1)}%**\n${isBuy ? 'Conditions optimales pour un achat.' : 'Conditions suggérant une vente.'}`,
         fields: [
-            { name: '💰 Prix Actuel', value: `$${alert.price.toFixed(2)}`, inline: true },
-            { name: '📈 SMA', value: `${alert.smaScore.toFixed(1)}%`, inline: true },
-            { name: '📉 Mean Rev', value: `${alert.meanRevScore.toFixed(1)}%`, inline: true },
-            { name: '🚀 Momentum', value: `${alert.momentumScore.toFixed(1)}%`, inline: true },
-            { name: '🔮 Prediction', value: alert.predictionScore !== undefined ? `${alert.predictionScore.toFixed(1)}%` : 'N/A', inline: true },
-            { name: '📊 EMA', value: alert.emaScore !== undefined ? `${alert.emaScore.toFixed(1)}%` : 'N/A', inline: true },
+            { name: '💰 Prix', value: `$${alert.price.toFixed(2)}`, inline: true },
+            { name: '🎯 Signal', value: alert.action, inline: true }
         ],
-        footer: { text: '🤖 CryptoSim Bot - Analyse Continue' },
+        footer: { text: 'Bot 2.0 - Analyse Temps Réel' },
         timestamp: new Date().toISOString()
     };
 
@@ -65,33 +47,28 @@ export async function sendOpportunityAlert(alert: OpportunityAlert): Promise<voi
         await fetch(DISCORD_WEBHOOK_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                username: '🚨 Opportunity Alert',
-                embeds: [embed]
-            })
+            body: JSON.stringify({ username: '🚨 Opportunity Alert', embeds: [embed] })
         });
-        console.log('Opportunity alert sent to Discord');
     } catch (error) {
-        console.error('Failed to send Discord opportunity alert:', error);
+        console.error('Discord error:', error);
     }
 }
 
 export async function sendTradeAlert(alert: TradeAlertReport): Promise<void> {
     const isBuy = alert.type === 'BUY';
-    const color = isBuy ? 0x00ff00 : 0xff0000; // Green for Buy, Red for Sell
-    const title = isBuy ? `🟢 BUY ALETRT: ${alert.symbol}` : `🔴 SELL ALERT: ${alert.symbol}`;
+    const color = isBuy ? 0x00ff00 : 0xff0000;
+    const title = isBuy ? `🟢 BUY: ${alert.symbol}` : `🔴 SELL: ${alert.symbol}`;
 
     const fields = [
-        { name: 'Price', value: `$${alert.price.toFixed(2)}`, inline: true },
-        { name: 'Amount', value: `${alert.amount.toFixed(4)}`, inline: true },
-        { name: 'Total Value', value: `$${alert.total.toFixed(2)}`, inline: true },
+        { name: 'Prix', value: `$${alert.price.toFixed(2)}`, inline: true },
+        { name: 'Montant', value: `${alert.amount.toFixed(4)}`, inline: true },
+        { name: 'Valeur', value: `$${alert.total.toFixed(2)}`, inline: true },
     ];
 
-    if (!isBuy && alert.profit !== undefined && alert.profitPercent !== undefined) {
-        const pEmoji = alert.profit >= 0 ? '🤑' : '💸';
+    if (!isBuy && alert.profit !== undefined) {
         fields.push({
-            name: `${pEmoji} Profit/Loss`,
-            value: `**$${alert.profit.toFixed(2)}** (${alert.profitPercent.toFixed(2)}%)`,
+            name: 'Profit/Loss',
+            value: `**$${alert.profit.toFixed(2)}** (${alert.profitPercent?.toFixed(2)}%)`,
             inline: false
         });
     }
@@ -100,7 +77,7 @@ export async function sendTradeAlert(alert: TradeAlertReport): Promise<void> {
         title,
         color,
         fields,
-        footer: { text: '🤖 CryptoSim Bot Trade' },
+        footer: { text: 'Bot 2.0 - Trade Exécuté' },
         timestamp: new Date().toISOString()
     };
 
@@ -108,14 +85,10 @@ export async function sendTradeAlert(alert: TradeAlertReport): Promise<void> {
         await fetch(TRADE_WEBHOOK_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                username: '🤖 Trade Bot',
-                embeds: [embed]
-            })
+            body: JSON.stringify({ username: '🤖 Trade Bot', embeds: [embed] })
         });
-        console.log('Trade alert sent to Discord');
     } catch (error) {
-        console.error('Failed to send Discord trade alert:', error);
+        console.error('Discord error:', error);
     }
 }
 
@@ -124,71 +97,32 @@ export async function sendDiscordReport(report: AnalysisReport): Promise<void> {
     const actionColor = report.action === 'BUY' ? 0x00ff00 : report.action === 'SELL' ? 0xff0000 : 0x808080;
 
     const embed = {
-        title: `📊 Market Analysis - ${report.symbol}/USDT`,
+        title: `📊 Monitoring - ${report.symbol}/USDT`,
         color: actionColor,
+        description: `**Probabilité Globale: ${report.probability.toFixed(1)}%**`,
         fields: [
             {
-                name: '📈 SMA Trend',
-                value: `${report.smaScore.toFixed(1)}%`,
+                name: `${actionEmoji} Décision`,
+                value: `**${report.action}** ${report.price ? `@ $${report.price.toFixed(2)}` : ''}`,
                 inline: true
             },
             {
-                name: '📉 Mean Reversion',
-                value: `${report.meanRevScore.toFixed(1)}%`,
-                inline: true
-            },
-            {
-                name: '🚀 Momentum',
-                value: `${report.momentumScore.toFixed(1)}%`,
-                inline: true
-            },
-            {
-                name: '🔮 Prediction',
-                value: report.predictionScore !== undefined ? `${report.predictionScore.toFixed(1)}%` : 'N/A',
-                inline: true
-            },
-            {
-                name: '📊 EMA',
-                value: report.emaScore !== undefined ? `${report.emaScore.toFixed(1)}%` : 'N/A',
-                inline: true
-            },
-            {
-                name: '🎯 Probability',
-                value: `**${report.probability.toFixed(1)}%** chance of increase`,
-                inline: false
-            },
-            {
-                name: `${actionEmoji} Action`,
-                value: report.action === 'HOLD'
-                    ? 'HOLD - Waiting for clearer signal'
-                    : `**${report.action}** ${report.tradeAmount ? `$${report.tradeAmount.toFixed(2)}` : ''} @ $${report.price?.toFixed(2) || 'N/A'}`,
-                inline: false
-            },
-            {
-                name: '💰 Portfolio Balance',
+                name: '💰 Solde Portefeuille',
                 value: `$${report.balance.toFixed(2)}`,
                 inline: true
             }
         ],
-        footer: {
-            text: '🤖 Trading Bot'
-        },
+        footer: { text: 'Bot 2.0 - Rapport d\'Analyse' },
         timestamp: new Date().toISOString()
     };
 
     try {
         await fetch(DISCORD_WEBHOOK_URL, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                username: '🤖 Trading Bot',
-                embeds: [embed]
-            })
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: '🤖 Monitoring Bot', embeds: [embed] })
         });
-        console.log('Discord notification sent');
     } catch (error) {
-        console.error('Failed to send Discord notification:', error);
+        console.error('Discord error:', error);
     }
 }

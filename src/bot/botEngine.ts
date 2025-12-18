@@ -1,14 +1,13 @@
 import type { CandleData } from '../utils/chartData';
-import type { BotState, BotConfig, Signal, StrategyResult } from './botTypes';
-import { smaCrossover, meanReversion, momentum, advancedPrediction, emaStrategy, aggregateSignals } from './strategies';
+import type { BotState, BotConfig, Signal, StrategyResult, Position } from './botTypes';
+import { calculateGlobalProbability } from './strategies';
 
-export type TradeCallback = (type: 'BUY' | 'SELL', amount: number, reason: string) => void;
+export type TradeCallback = (type: 'BUY' | 'SELL', amount: number, reason: string, position?: Position) => void;
 
 export class TradingBot {
     private state: BotState;
     private config: BotConfig;
     private onTrade: TradeCallback | null = null;
-    private lastTradeSignal: Signal = 'HOLD';
     private cooldownMs: number = 60000; // 1 minute cooldown between trades
 
     constructor(config: Partial<BotConfig> = {}) {
@@ -16,13 +15,14 @@ export class TradingBot {
             tradeAmount: 0.001,
             symbol: 'BTC',
             enabled: false,
-            strategies: {
-                sma: true,
-                meanReversion: true,
-                momentum: true,
-                prediction: true,
-                ema: true
+            risk: {
+                stopLossPercent: 2,
+                takeProfitPercent: 5,
+                maxDrawdownPercent: 10,
+                maxTradeBalancePercent: 20,
+                ...config.risk
             },
+            strategyName: 'Custom Probability',
             ...config
         };
 
@@ -32,7 +32,8 @@ export class TradingBot {
             lastSignal: 'HOLD',
             tradesCount: 0,
             profitLoss: 0,
-            lastTradeTime: null
+            lastTradeTime: null,
+            currentPosition: null
         };
     }
 
@@ -64,6 +65,10 @@ export class TradingBot {
         return { ...this.config };
     }
 
+    updateConfig(config: Partial<BotConfig>): void {
+        this.config = { ...this.config, ...config };
+    }
+
     setTradeAmount(amount: number): void {
         this.config.tradeAmount = amount;
     }
@@ -72,9 +77,6 @@ export class TradingBot {
         this.config.symbol = symbol;
     }
 
-    setStrategies(strategies: BotConfig['strategies']): void {
-        this.config.strategies = strategies;
-    }
 
     /**
      * Analyze market data and potentially execute a trade
@@ -84,42 +86,67 @@ export class TradingBot {
             return this.state.lastAnalysis;
         }
 
-        // Run enabled strategies
-        const results: StrategyResult[] = [];
+        const currentPrice = candles[candles.length - 1].close;
 
-        if (this.config.strategies.sma) {
-            results.push(smaCrossover(candles));
+        // 1. Check existing position for SL/TP
+        if (this.state.currentPosition) {
+            this.checkRiskManagement(currentPrice);
         }
-        if (this.config.strategies.meanReversion) {
-            results.push(meanReversion(candles));
-        }
-        if (this.config.strategies.momentum) {
-            results.push(momentum(candles));
-        }
-        if (this.config.strategies.prediction) {
-            results.push(advancedPrediction(candles));
-        }
-        if (this.config.strategies.ema) {
-            results.push(emaStrategy(candles));
-        }
+
+        // 2. Run the unified probability strategy
+        const result = calculateGlobalProbability(candles);
+        const results = [result];
 
         this.state.lastAnalysis = results;
 
-        // Get aggregated signal
-        const signal = aggregateSignals(results);
+        // 3. Logic based on probability thresholds (55% / 45%)
+        const probability = result.confidence;
+        let signal: Signal = 'HOLD';
+
+        if (probability >= 55) {
+            signal = 'BUY';
+        } else if (probability <= 45) {
+            signal = 'SELL';
+        }
+
         this.state.lastSignal = signal;
 
-        // Check if we should trade
-        if (signal !== 'HOLD' && this.canTrade(signal)) {
-            this.executeTrade(signal, results);
+        // 4. Execution logic based on probability thresholds (55% / 45%)
+        if (signal === 'BUY' && this.canTrade('BUY')) {
+            // Open position if allowed
+            this.executeTrade('BUY', results, currentPrice);
+        } else if (signal === 'SELL' && this.state.currentPosition) {
+            // Close position if it exists (probability <= 45%)
+            this.closePosition('SELL', `Probability dropped to ${probability.toFixed(1)}%`, currentPrice);
         }
 
         return results;
     }
 
+    private checkRiskManagement(currentPrice: number): void {
+        const pos = this.state.currentPosition;
+        if (!pos) return;
+
+        const pnl = (currentPrice - pos.entryPrice) / pos.entryPrice * 100;
+
+        // Take Profit
+        if (pnl >= pos.takeProfit) {
+            this.closePosition('SELL', `Take Profit hit: +${pnl.toFixed(2)}%`, currentPrice);
+        }
+        // Stop Loss
+        else if (pnl <= -pos.stopLoss) {
+            this.closePosition('SELL', `Stop Loss hit: ${pnl.toFixed(2)}%`, currentPrice);
+        }
+    }
+
     private canTrade(signal: Signal): boolean {
-        // Don't trade the same signal twice in a row
-        if (signal === this.lastTradeSignal) {
+        // If we have an open position, don't open another one (for now 1-pos limit)
+        if (this.state.currentPosition && signal === 'BUY') {
+            return false;
+        }
+
+        // If we want to SELL but have no position, ignore (unless we want to support shorting later)
+        if (!this.state.currentPosition && signal === 'SELL') {
             return false;
         }
 
@@ -134,18 +161,51 @@ export class TradingBot {
         return true;
     }
 
-    private executeTrade(signal: Signal, results: StrategyResult[]): void {
+    private executeTrade(signal: Signal, results: StrategyResult[], currentPrice: number): void {
         if (!this.onTrade) return;
 
-        const agreeing = results.filter(r => r.signal === signal).map(r => r.strategy);
-        const reason = `Bot: ${agreeing.join(' + ')}`;
+        if (signal === 'BUY') {
+            const stopLoss = this.config.risk.stopLossPercent;
+            const takeProfit = this.config.risk.takeProfitPercent;
 
-        this.onTrade(signal as 'BUY' | 'SELL', this.config.tradeAmount, reason);
+            const position: Position = {
+                id: Math.random().toString(36).substring(7),
+                symbol: this.config.symbol,
+                type: 'BUY',
+                amount: this.config.tradeAmount,
+                entryPrice: currentPrice,
+                entryTime: new Date(),
+                stopLoss,
+                takeProfit,
+                status: 'OPEN'
+            };
 
-        this.lastTradeSignal = signal;
+            this.state.currentPosition = position;
+            const agreeing = results.filter(r => r.signal === signal).map(r => r.strategy);
+            const reason = `Strategy entry: ${agreeing.join(' + ')}`;
+
+            this.onTrade('BUY', this.config.tradeAmount, reason, position);
+        } else if (signal === 'SELL') {
+            this.closePosition('SELL', 'Strategy Exit Signal', currentPrice);
+        }
+
         this.state.lastTradeTime = new Date();
         this.state.tradesCount++;
+    }
 
-        console.log(`🤖 Trade executed: ${signal} (${reason})`);
+    private closePosition(_type: 'SELL', reason: string, currentPrice: number): void {
+        if (!this.state.currentPosition || !this.onTrade) return;
+
+        const pos = this.state.currentPosition;
+        pos.status = 'CLOSED';
+        pos.exitPrice = currentPrice;
+        pos.exitTime = new Date();
+        pos.profit = (currentPrice - pos.entryPrice) * pos.amount;
+        pos.profitPercent = (currentPrice - pos.entryPrice) / pos.entryPrice * 100;
+
+        this.state.profitLoss += pos.profit;
+        this.state.currentPosition = null;
+
+        this.onTrade('SELL', pos.amount, reason, pos);
     }
 }

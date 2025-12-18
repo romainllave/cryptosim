@@ -4,7 +4,6 @@ import { TVChart } from './components/Chart/TVChart';
 import { TransactionHistory } from './components/History/TransactionHistory';
 import { TradePanel } from './components/Trading/TradePanel';
 import { BotPanel } from './components/Bot/BotPanel';
-import type { StrategySelection } from './components/Bot/BotPanel';
 import type { Crypto, Transaction } from './types';
 import { MOCK_CRYPTOS } from './types';
 import type { CandleData } from './utils/chartData';
@@ -23,9 +22,7 @@ import {
   getUserSettings,
   updateUserSettings,
   getTrades,
-  getBalance,
-  fetchStrategies,
-  updateStrategy
+  getBalance
 } from './services/supabase';
 import type { BotTrade } from './services/supabase';
 
@@ -46,22 +43,21 @@ function App() {
     lastSignal: 'HOLD',
     tradesCount: 0,
     profitLoss: 0,
-    lastTradeTime: null
+    lastTradeTime: null,
+    currentPosition: null
   });
 
   const [botConfig, setBotConfig] = useState<BotConfig>({
     tradeAmount: 0.001,
     symbol: 'BTC',
     enabled: false,
-    strategies: { sma: true, meanReversion: true, momentum: true, prediction: true, ema: true }
-  });
-
-  const [strategies, setStrategies] = useState<StrategySelection>({
-    sma: true,
-    meanReversion: true,
-    momentum: true,
-    prediction: true,
-    ema: true
+    risk: {
+      stopLossPercent: 2,
+      takeProfitPercent: 5,
+      maxDrawdownPercent: 10,
+      maxTradeBalancePercent: 20
+    },
+    strategyName: 'Custom Probability'
   });
 
   const smaData = useMemo(() => {
@@ -79,7 +75,6 @@ function App() {
       setIsDarkMode(settings.theme === 'dark');
       if (settings.last_symbol) {
         setSelectedSymbol(settings.last_symbol);
-        // Also ensure bot config matches selected symbol initially
         setBotConfig(prev => ({ ...prev, symbol: settings.last_symbol }));
       }
 
@@ -99,11 +94,6 @@ function App() {
         timestamp: new Date(t.created_at || Date.now())
       }));
       setTransactions(mappedTransactions);
-
-      // 4. Load Strategies
-      const dbStrategies = await fetchStrategies();
-      setStrategies(dbStrategies);
-      setBotConfig(prev => ({ ...prev, strategies: dbStrategies }));
     }
 
     initData();
@@ -128,7 +118,6 @@ function App() {
   // Subscribe to Bot Status from Supabase
   useEffect(() => {
     const unsubscribe = subscribeToBotStatus((data) => {
-      console.log('🤖 Bot Status Update:', data);
       setBotState(prev => ({
         ...prev,
         status: data.status,
@@ -156,7 +145,6 @@ function App() {
       };
 
       setTransactions(prev => {
-        // Avoid duplicates if real-time fires before initial load finishes
         if (prev.some(tx => tx.id === newTx.id)) return prev;
         return [newTx, ...prev];
       });
@@ -167,8 +155,6 @@ function App() {
         lastTradeTime: newTx.timestamp,
       }));
 
-      // Also update balance in UI realistically
-      // (Though a subscribeToBalance would be better to keep in sync with backend logic)
       if (trade.type === 'BUY') {
         setBalance(b => b - trade.total);
       } else {
@@ -181,21 +167,16 @@ function App() {
 
   // Fetch Historical Data & Subscribe to specific symbol Kline
   useEffect(() => {
-    // 1. Fetch History
-    // 1. Fetch History
-    // If 1m: fetch 200 (standard). If 15m: fetch 1500 (approx 2 weeks).
     const limit = timeframe === '15m' ? 1500 : 200;
 
     fetchKlines(selectedSymbol, timeframe, limit).then(data => {
       setCandleData(data);
     });
 
-    // 2. Subscribe to Real-time Candle updates
     const unsubscribeKline = subscribeToKline(selectedSymbol, timeframe, (candle) => {
       setCandleData(prev => {
         if (prev.length === 0) return [candle];
         const last = prev[prev.length - 1];
-        // If same time, update last candle. If new time, push new candle.
         if (last.time === candle.time) {
           return [...prev.slice(0, -1), candle];
         } else {
@@ -265,7 +246,6 @@ function App() {
 
     setTransactions(prev => [newTx, ...prev]);
 
-    // Save trade to Supabase
     saveTrade({
       type,
       symbol: selectedSymbol,
@@ -277,25 +257,17 @@ function App() {
   };
 
   const handleBotStart = () => {
-    // Optimistic update
     setBotState(prev => ({ ...prev, status: 'RUNNING' }));
-
-    // Send command via Supabase
-    sendBotCommand('start', selectedSymbol, strategies).catch(console.error);
+    sendBotCommand('start', selectedSymbol).catch(console.error);
   };
 
   const handleBotStop = () => {
-    // Optimistic update
     setBotState(prev => ({ ...prev, status: 'IDLE' }));
-
-    // Send command via Supabase
     sendBotCommand('stop', selectedSymbol).catch(console.error);
   };
 
   const handleBotTradeAmountChange = (amount: number) => {
     setBotConfig(prev => ({ ...prev, tradeAmount: amount }));
-    // Note: We're not sending this to backend yet, backend uses default.
-    // Future improvement: Send config update command.
   };
 
   return (
@@ -422,23 +394,9 @@ function App() {
           <BotPanel
             botState={botState}
             botConfig={botConfig}
-            strategies={strategies}
             onStart={handleBotStart}
             onStop={handleBotStop}
             onTradeAmountChange={handleBotTradeAmountChange}
-            onStrategyChange={(newStrategies) => {
-              setStrategies(newStrategies);
-              // Find changed strategy
-              Object.keys(newStrategies).forEach(key => {
-                const k = key as keyof StrategySelection;
-                if (newStrategies[k] !== strategies[k]) {
-                  // Only update the one that changed
-                  updateStrategy(k, newStrategies[k]).catch(console.error);
-                }
-              });
-              // Also update local bot config so it reflects immediately in UI if needed
-              setBotConfig(prev => ({ ...prev, strategies: newStrategies }));
-            }}
           />
         </div>
       </div>

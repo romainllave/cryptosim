@@ -15,9 +15,7 @@ import {
     updateBotStatus,
     getBalance,
     updateBalance,
-    saveLog,
-    fetchStrategies,
-    subscribeToStrategies
+    saveLog
 } from '../services/supabase';
 import type { BotCommand } from '../services/supabase';
 import type { CandleData } from '../utils/chartData';
@@ -42,8 +40,15 @@ async function main() {
     // Initialize Bot
     const bot = new TradingBot({
         symbol: 'BTC',
-        tradeAmount: 0.001, // Default, can be updated via command if we add that later
-        enabled: false // Start disabled, wait for command
+        tradeAmount: 0.001,
+        enabled: false,
+        risk: {
+            stopLossPercent: 2,
+            takeProfitPercent: 5,
+            maxDrawdownPercent: 10,
+            maxTradeBalancePercent: 20
+        },
+        strategyName: 'Custom Probability'
     });
 
     // Helper for logging to DB + Console
@@ -53,30 +58,8 @@ async function main() {
         saveLog(type, msg).catch(err => console.error('Failed to save log:', err));
     };
 
-    // Load Strategies from DB
-    try {
-        const strategies = await fetchStrategies();
-        bot.setStrategies(strategies);
-        console.log('✅ Strategies loaded from DB:', strategies);
-    } catch (err) {
-        console.error('❌ Failed to load strategies:', err);
-    }
-
-    // Subscribe to Strategy Updates
-    subscribeToStrategies((update) => {
-        const currentStrategies = bot.getConfig().strategies;
-        // @ts-ignore - Dynamic key access
-        if (currentStrategies[update.name] !== undefined) {
-            const newStrategies = {
-                ...currentStrategies,
-                [update.name]: update.isActive
-            };
-            bot.setStrategies(newStrategies);
-            const statusMsg = update.isActive ? 'ACTIVE' : 'INACTIVE';
-            console.log(`⚙️ Strategy updated: ${update.name} is now ${statusMsg}`);
-            saveLog('info', `⚙️ Strategy updated: ${update.name} is now ${statusMsg}`).catch(console.error);
-        }
-    });
+    // Initial cleanup of strategy logic
+    console.log('✅ Bot using single custom strategy (55/45)');
 
     // Ensure status is synced as IDLE on startup
     await updateBotStatus('IDLE', 'BTC');
@@ -129,28 +112,17 @@ async function main() {
 
             // ========== CONTINUOUS MARKET ANALYSIS ==========
             // Always analyze the market, even if bot is not running (for opportunity detection)
-            if (candles.length >= 50) {
+            if (candles.length >= 25) {
                 const analysisResults = bot.analyze(candles);
+                const result = analysisResults[0];
+                const probability = result.confidence;
 
-                // Calculate probability
-                const smaScore = analysisResults.find(r => r.strategy.includes('SMA'))?.confidence || 50;
-                const meanRevScore = analysisResults.find(r => r.strategy.includes('Mean Reversion'))?.confidence || 50;
-                const momentumScore = analysisResults.find(r => r.strategy.includes('Momentum'))?.confidence || 50;
-                const predictionScore = analysisResults.find(r => r.strategy.includes('Prediction'))?.confidence;
-                const emaScore = analysisResults.find(r => r.strategy.includes('EMA'))?.confidence;
-
-                let totalScore = smaScore + meanRevScore + momentumScore;
-                let count = 3;
-                if (predictionScore !== undefined) { totalScore += predictionScore; count++; }
-                if (emaScore !== undefined) { totalScore += emaScore; count++; }
-                const probability = totalScore / count;
-
-                // ========== OPPORTUNITY DETECTION (Seuil: 51% BUY, <49% SELL) ==========
+                // ========== OPPORTUNITY DETECTION (Seuil: 55% BUY, 45% SELL) ==========
                 const now = Date.now();
                 const canSendAlert = (now - lastOpportunityAlertTime) > OPPORTUNITY_COOLDOWN_MS;
 
                 if (canSendAlert) {
-                    if (probability > 51) {
+                    if (probability >= 55) {
                         // BUY Opportunity detected!
                         console.log(`🚀 OPPORTUNITY DETECTED: BUY signal at ${probability.toFixed(1)}%`);
                         log('signal', `🚀 Opportunité BUY détectée! Probabilité: ${probability.toFixed(1)}%`);
@@ -159,16 +131,11 @@ async function main() {
                             symbol: currentSymbol,
                             probability,
                             action: 'BUY',
-                            price: candle.close,
-                            smaScore,
-                            meanRevScore,
-                            momentumScore,
-                            predictionScore,
-                            emaScore
+                            price: candle.close
                         }).catch(console.error);
 
                         lastOpportunityAlertTime = now;
-                    } else if (probability < 49) {
+                    } else if (probability <= 45) {
                         // SELL Opportunity detected!
                         console.log(`⚠️ OPPORTUNITY DETECTED: SELL signal at ${probability.toFixed(1)}%`);
                         log('signal', `⚠️ Opportunité SELL détectée! Probabilité: ${probability.toFixed(1)}%`);
@@ -177,12 +144,7 @@ async function main() {
                             symbol: currentSymbol,
                             probability,
                             action: 'SELL',
-                            price: candle.close,
-                            smaScore,
-                            meanRevScore,
-                            momentumScore,
-                            predictionScore,
-                            emaScore
+                            price: candle.close
                         }).catch(console.error);
 
                         lastOpportunityAlertTime = now;
@@ -202,44 +164,11 @@ async function main() {
             }
 
             const price = candles[candles.length - 1].close;
-            const analysisResults = bot.analyze(candles); // Re-run analysis for reporting
+            const analysisResults = bot.analyze(candles);
+            const result = analysisResults[0];
+            const probability = result.confidence;
             const currentBalance = await getBalance();
 
-            console.log(`📊 Analysis results: ${analysisResults.length} strategies`);
-            analysisResults.forEach(r => {
-                console.log(`   - ${r.strategy}: ${r.signal} (${r.confidence.toFixed(1)}%)`);
-            });
-
-            // Extract scores (default to 50 if missing)
-            const smaScore = analysisResults.find(r => r.strategy.includes('SMA'))?.confidence || 50;
-            const meanRevScore = analysisResults.find(r => r.strategy.includes('Mean Reversion'))?.confidence || 50;
-            const momentumScore = analysisResults.find(r => r.strategy.includes('Momentum'))?.confidence || 50;
-            const predictionScore = analysisResults.find(r => r.strategy.includes('Prediction'))?.confidence;
-            const emaScore = analysisResults.find(r => r.strategy.includes('EMA'))?.confidence;
-
-            console.log(`📈 Scores - SMA: ${smaScore}, MeanRev: ${meanRevScore}, Momentum: ${momentumScore}, Prediction: ${predictionScore ?? 'N/A'}, EMA: ${emaScore ?? 'N/A'}`);
-
-            // Calculate aggregated probability
-            let totalScore = smaScore + meanRevScore + momentumScore;
-            let count = 3;
-
-            if (predictionScore !== undefined) {
-                totalScore += predictionScore;
-                count++;
-            }
-            if (emaScore !== undefined) {
-                totalScore += emaScore;
-                count++;
-            }
-
-            const probability = totalScore / count;
-
-            // Determine Report Action (Visual only)
-            let action: 'BUY' | 'SELL' | 'HOLD' = 'HOLD';
-            if (probability > 70) action = 'BUY';
-            else if (probability < 30) action = 'SELL';
-
-            // For now, let's log to DB so user sees "Analyzing"
             log('info', `📊 Analyzing ${currentSymbol} @ $${price.toFixed(2)} | Confidence: ${probability.toFixed(1)}%`);
 
             // Send Discord Heartbeat report
@@ -247,13 +176,9 @@ async function main() {
             try {
                 await sendDiscordReport({
                     symbol: currentSymbol,
-                    smaScore,
-                    meanRevScore,
-                    momentumScore,
-                    predictionScore,
-                    emaScore,
                     probability,
-                    action,
+                    action: result.signal,
+                    price,
                     balance: currentBalance
                 });
                 console.log('✅ Discord report sent successfully');
@@ -269,7 +194,7 @@ async function main() {
     await switchSymbol('BTC');
 
     // Setup Trade Callback
-    bot.setTradeCallback(async (type, amount, reason) => {
+    bot.setTradeCallback(async (type, amount, reason, _position) => {
         const price = candles[candles.length - 1]?.close || 0;
         let tradeAmount = amount;
 
@@ -372,16 +297,6 @@ async function main() {
                 await switchSymbol(cmd.symbol);
             }
 
-            if (cmd.strategies) {
-                bot.setStrategies({
-                    sma: cmd.strategies.sma,
-                    meanReversion: cmd.strategies.meanReversion,
-                    momentum: cmd.strategies.momentum,
-                    prediction: cmd.strategies.prediction ?? false,
-                    ema: cmd.strategies.ema ?? false
-                });
-                log('info', '⚙️ Strategies updated via Command');
-            }
 
             bot.start();
             await updateBotStatus('RUNNING', bot.getConfig().symbol);
@@ -394,33 +309,15 @@ async function main() {
             console.log('🚀 Sending initial Discord report after start...');
             if (candles.length > 0) {
                 const analysisResults = bot.analyze(candles);
+                const result = analysisResults[0];
                 const currentBalance = await getBalance();
-
-                const smaScore = analysisResults.find(r => r.strategy.includes('SMA'))?.confidence || 50;
-                const meanRevScore = analysisResults.find(r => r.strategy.includes('Mean Reversion'))?.confidence || 50;
-                const momentumScore = analysisResults.find(r => r.strategy.includes('Momentum'))?.confidence || 50;
-                const predictionScore = analysisResults.find(r => r.strategy.includes('Prediction'))?.confidence;
-                const emaScore = analysisResults.find(r => r.strategy.includes('EMA'))?.confidence;
-
-                let totalScore = smaScore + meanRevScore + momentumScore;
-                let count = 3;
-                if (predictionScore !== undefined) { totalScore += predictionScore; count++; }
-                if (emaScore !== undefined) { totalScore += emaScore; count++; }
-                const probability = totalScore / count;
-
-                let action: 'BUY' | 'SELL' | 'HOLD' = 'HOLD';
-                if (probability > 70) action = 'BUY';
-                else if (probability < 30) action = 'SELL';
+                const probability = result.confidence;
 
                 sendDiscordReport({
                     symbol: currentSymbol,
-                    smaScore,
-                    meanRevScore,
-                    momentumScore,
-                    predictionScore,
-                    emaScore,
                     probability,
-                    action,
+                    action: result.signal,
+                    price: candles[candles.length - 1].close,
                     balance: currentBalance
                 }).then(() => console.log('✅ Initial Discord report sent'))
                     .catch(err => console.error('❌ Failed to send initial report:', err));
