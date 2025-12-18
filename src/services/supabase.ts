@@ -184,6 +184,115 @@ export function subscribeToBalance(callback: (balance: number) => void) {
         supabase.removeChannel(channel);
     };
 }
+
+// Positions
+export interface DBPosition {
+    id: string;
+    symbol: string;
+    type: 'BUY';
+    amount: number;
+    entryPrice: number;
+    entryTime: string;
+    stopLoss?: number;
+    takeProfit?: number;
+    status: 'OPEN' | 'CLOSED';
+}
+
+export async function savePosition(position: DBPosition): Promise<void> {
+    const { error } = await supabase
+        .from('positions')
+        .upsert({
+            id: position.id,
+            symbol: position.symbol,
+            type: position.type,
+            amount: position.amount,
+            entry_price: position.entryPrice,
+            entry_time: position.entryTime,
+            stop_loss: position.stopLoss,
+            take_profit: position.takeProfit,
+            status: position.status,
+            updated_at: new Date().toISOString()
+        });
+
+    if (error) {
+        console.error('Error saving position:', error);
+        throw error;
+    }
+}
+
+export async function getOpenPosition(symbol: string): Promise<DBPosition | null> {
+    const { data, error } = await supabase
+        .from('positions')
+        .select('*')
+        .eq('status', 'OPEN')
+        .eq('symbol', symbol)
+        .limit(1)
+        .single();
+
+    if (error) {
+        if (error.code !== 'PGRST116') {
+            console.error('Error getting position:', error);
+        }
+        return null;
+    }
+
+    return {
+        id: data.id,
+        symbol: data.symbol,
+        type: data.type as 'BUY',
+        amount: data.amount,
+        entryPrice: data.entry_price,
+        entryTime: data.entry_time,
+        stopLoss: data.stop_loss,
+        takeProfit: data.take_profit,
+        status: data.status as 'OPEN' | 'CLOSED'
+    };
+}
+
+export async function deletePosition(id: string): Promise<void> {
+    const { error } = await supabase
+        .from('positions')
+        .delete()
+        .eq('id', id);
+
+    if (error) {
+        console.error('Error deleting position:', error);
+    }
+}
+
+export function subscribeToPositions(callback: (position: DBPosition | null) => void) {
+    const channel = supabase
+        .channel('portfolio-positions')
+        .on(
+            'postgres_changes',
+            { event: '*', schema: 'public', table: 'positions' },
+            (payload) => {
+                const newData = payload.new as any;
+
+                if (payload.eventType === 'DELETE' || (newData && newData.status === 'CLOSED')) {
+                    callback(null);
+                } else if (newData && newData.status === 'OPEN') {
+                    callback({
+                        id: newData.id,
+                        symbol: newData.symbol,
+                        type: newData.type as 'BUY',
+                        amount: newData.amount,
+                        entryPrice: newData.entry_price,
+                        entryTime: newData.entry_time,
+                        stopLoss: newData.stop_loss,
+                        takeProfit: newData.take_profit,
+                        status: newData.status as 'OPEN' | 'CLOSED'
+                    });
+                }
+            }
+        )
+        .subscribe();
+
+    return () => {
+        supabase.removeChannel(channel);
+    };
+}
+
 // Bot Status
 export async function updateBotStatus(status: 'IDLE' | 'RUNNING', symbol: string): Promise<void> {
     const { error } = await supabase

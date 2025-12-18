@@ -15,8 +15,12 @@ import {
     updateBotStatus,
     getBalance,
     updateBalance,
-    saveLog
+    saveLog,
+    getOpenPosition,
+    savePosition,
+    deletePosition
 } from '../services/supabase';
+import type { DBPosition } from '../services/supabase';
 import type { BotCommand } from '../services/supabase';
 import type { CandleData } from '../utils/chartData';
 import { sendDiscordReport, sendTradeAlert, sendOpportunityAlert } from '../services/discord';
@@ -63,6 +67,19 @@ async function main() {
 
     // Ensure status is synced as IDLE on startup
     await updateBotStatus('IDLE', 'BTC');
+
+    // ========== POSITION REHYDRATION ==========
+    console.log('🔄 Checking for existing open position...');
+    const existingPosition: DBPosition | null = await getOpenPosition('BTC');
+    if (existingPosition) {
+        console.log(`📌 Found open position: ${existingPosition.type} ${existingPosition.amount} ${existingPosition.symbol}`);
+        bot.rehydratePosition({
+            ...existingPosition,
+            entryTime: new Date(existingPosition.entryTime)
+        } as any);
+        log('info', `Rehydrated open position: ${existingPosition.type} ${existingPosition.symbol}`);
+        await updateBotStatus('RUNNING', 'BTC');
+    }
 
     console.log('🤖 Bot initialized. Waiting for commands...');
     log('info', 'Bot Service initialized. Waiting for commands...');
@@ -283,6 +300,27 @@ async function main() {
             reason
         }).then(() => log('success', '💾 Trade saved to DB'))
             .catch(err => log('error', `❌ Error saving trade: ${err.message}`));
+
+        // 5. Update Position Persistence
+        if (type === 'BUY') {
+            await savePosition({
+                id: Math.random().toString(36).substring(7), // Fallback if position object not passed
+                ...(_position || {}),
+                symbol: bot.getConfig().symbol,
+                type: 'BUY',
+                amount: tradeAmount,
+                entryPrice: price,
+                entryTime: new Date().toISOString(),
+                status: 'OPEN'
+            } as any);
+            log('success', '📌 Position persisted to Supabase');
+        } else if (type === 'SELL') {
+            const openPos = await getOpenPosition(bot.getConfig().symbol);
+            if (openPos) {
+                await deletePosition(openPos.id);
+                log('success', '📌 Position removed from Supabase');
+            }
+        }
     });
 
     // Command Listener

@@ -61,6 +61,14 @@ export class TradingBot {
         return { ...this.state };
     }
 
+    rehydratePosition(position: Position | null): void {
+        this.state.currentPosition = position;
+        if (position) {
+            this.state.status = 'RUNNING';
+            this.config.enabled = true;
+        }
+    }
+
     getConfig(): BotConfig {
         return { ...this.config };
     }

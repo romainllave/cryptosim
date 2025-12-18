@@ -14,8 +14,8 @@ export interface Position {
     amount: number;
     entryPrice: number;
     entryTime: Date;
-    stopLoss: number;
-    takeProfit: number;
+    stopLoss?: number;
+    takeProfit?: number;
     status: 'OPEN' | 'CLOSED';
     exitPrice?: number;
     exitTime?: Date;

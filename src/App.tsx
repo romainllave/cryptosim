@@ -12,7 +12,7 @@ import { clsx } from 'clsx';
 import { fetchKlines, subscribeToTickers, subscribeToKline } from './services/binance';
 // import { loadBalance, saveBalance, loadTransactions, saveTransactions } from './services/storage'; // Deprecated
 import { calculateSMA } from './utils/indicators';
-import type { BotState, BotConfig } from './bot/botTypes';
+import type { BotState, BotConfig, Position } from './bot/botTypes';
 import {
   sendBotCommand,
   saveTrade,
@@ -22,7 +22,9 @@ import {
   getUserSettings,
   updateUserSettings,
   getTrades,
-  getBalance
+  getBalance,
+  subscribeToBalance,
+  subscribeToPositions
 } from './services/supabase';
 import type { BotTrade } from './services/supabase';
 
@@ -131,6 +133,38 @@ function App() {
     return () => unsubscribe();
   }, []);
 
+  // Subscribe to Balance from Supabase (Real-time)
+  useEffect(() => {
+    const unsubscribe = subscribeToBalance((newBalance) => {
+      setBalance(newBalance);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Subscribe to Positions from Supabase (Real-time)
+  useEffect(() => {
+    const unsubscribe = subscribeToPositions((dbPos) => {
+      if (dbPos) {
+        const position: Position = {
+          ...dbPos,
+          entryTime: new Date(dbPos.entryTime)
+        };
+        setBotState(prev => ({
+          ...prev,
+          currentPosition: position,
+          status: 'RUNNING'
+        }));
+        setBotConfig(prev => ({ ...prev, enabled: true }));
+      } else {
+        setBotState(prev => ({
+          ...prev,
+          currentPosition: null
+        }));
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
   // Subscribe to bot trades from Supabase (real-time)
   useEffect(() => {
     const unsubscribe = subscribeToTrades((trade: BotTrade) => {
@@ -154,12 +188,6 @@ function App() {
         tradesCount: prev.tradesCount + 1,
         lastTradeTime: newTx.timestamp,
       }));
-
-      if (trade.type === 'BUY') {
-        setBalance(b => b - trade.total);
-      } else {
-        setBalance(b => b + trade.total);
-      }
     });
 
     return () => unsubscribe();
