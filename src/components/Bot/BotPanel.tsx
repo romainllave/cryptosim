@@ -69,6 +69,9 @@ export const BotPanel: React.FC<BotPanelProps> = ({
                 <div className="px-3 py-2 bg-blue-50 rounded-lg border border-blue-100 dark:bg-blue-900/20 dark:border-blue-800/50">
                     <p className="text-[10px] uppercase font-bold text-blue-600 dark:text-blue-400 tracking-wider">Mode</p>
                     <p className="text-xs font-semibold mt-1">Stratégie Personnalisée (55/45)</p>
+                    {botConfig.randomAmountEnabled && (
+                        <p className="text-[10px] text-blue-600 dark:text-blue-400 mt-0.5">🎲 Budget Aléatoire: 0-1000 USDT</p>
+                    )}
                 </div>
             </div>
 

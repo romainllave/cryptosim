@@ -59,7 +59,9 @@ function App() {
       maxDrawdownPercent: 10,
       maxTradeBalancePercent: 20
     },
-    strategyName: 'Custom Probability'
+    strategyName: 'Custom Probability',
+    randomAmountEnabled: true,
+    maxRandomAmount: 1000
   });
 
   const smaData = useMemo(() => {

@@ -36,6 +36,8 @@ export interface BotConfig {
     enabled: boolean;
     risk: RiskConfig;
     strategyName: string;
+    randomAmountEnabled?: boolean;
+    maxRandomAmount?: number;
 }
 
 export interface BotState {

@@ -52,7 +52,9 @@ async function main() {
             maxDrawdownPercent: 10,
             maxTradeBalancePercent: 20
         },
-        strategyName: 'Custom Probability'
+        strategyName: 'Custom Probability',
+        randomAmountEnabled: true,
+        maxRandomAmount: 1000
     });
 
     // Helper for logging to DB + Console

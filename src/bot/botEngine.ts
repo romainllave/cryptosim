@@ -23,6 +23,8 @@ export class TradingBot {
                 ...config.risk
             },
             strategyName: 'Custom Probability',
+            randomAmountEnabled: true, // Enabled by default as per request
+            maxRandomAmount: 1000,
             ...config
         };
 
@@ -192,7 +194,14 @@ export class TradingBot {
             const agreeing = results.filter(r => r.signal === signal).map(r => r.strategy);
             const reason = `Strategy entry: ${agreeing.join(' + ')}`;
 
-            this.onTrade('BUY', this.config.tradeAmount, reason, position);
+            // Calculate actual crypto amount if random budget is enabled
+            let finalTradeAmount = this.config.tradeAmount;
+            if (this.config.randomAmountEnabled) {
+                const randomBudget = Math.random() * (this.config.maxRandomAmount || 1000);
+                finalTradeAmount = randomBudget / currentPrice;
+            }
+
+            this.onTrade('BUY', finalTradeAmount, reason, position);
         } else if (signal === 'SELL') {
             this.closePosition('SELL', 'Strategy Exit Signal', currentPrice);
         }
