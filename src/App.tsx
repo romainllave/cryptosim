@@ -7,7 +7,7 @@ import { BotPanel } from './components/Bot/BotPanel';
 import type { Crypto, Transaction } from './types';
 import { MOCK_CRYPTOS } from './types';
 import type { CandleData } from './utils/chartData';
-import { Activity, Moon, Sun } from 'lucide-react';
+import { Activity, Moon, Sun, Maximize2, Minimize2 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { fetchKlines, subscribeToTickers, subscribeToKline } from './services/binance';
 // import { loadBalance, saveBalance, loadTransactions, saveTransactions } from './services/storage'; // Deprecated
@@ -37,6 +37,10 @@ function App() {
   const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
   const [showSMA, setShowSMA] = useState<boolean>(false);
   const [timeframe, setTimeframe] = useState<'1m' | '15m'>('1m');
+  const [isFullScreen, setIsFullScreen] = useState<boolean>(false);
+  const [activeCategory, setActiveCategory] = useState<string>('Toutes');
+
+  const categories = ['Toutes', 'Favoris', 'Crypto', 'DeFi', 'NFTs', 'Meme', 'Layer 1', 'Layer 2', 'Web3', 'AI', 'Storage'];
 
   // Bot state (Synced with Supabase)
   const [botState, setBotState] = useState<BotState>({
@@ -310,6 +314,28 @@ function App() {
           </div>
           <h1 className="font-bold text-lg tracking-tight">CryptoSim</h1>
         </div>
+        <div className="flex-1 px-8 relative overflow-hidden group">
+          <div className="flex items-center gap-6 overflow-x-auto no-scrollbar scroll-smooth h-full" id="category-scroll">
+            {categories.map(cat => (
+              <button
+                key={cat}
+                onClick={() => setActiveCategory(cat)}
+                className={clsx(
+                  "whitespace-nowrap px-1 h-full flex items-center border-b-2 transition-all text-sm font-medium",
+                  activeCategory === cat
+                    ? "border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400"
+                    : "border-transparent text-text-secondary hover:text-text-primary dark:text-[#787b86] dark:hover:text-[#d1d4dc]"
+                )}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+          {/* Shadow gradients for scroll indications */}
+          <div className="absolute left-6 top-0 bottom-0 w-4 bg-gradient-to-r from-white to-transparent dark:from-[#1e222d] pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity" />
+          <div className="absolute right-6 top-0 bottom-0 w-4 bg-gradient-to-l from-white to-transparent dark:from-[#1e222d] pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity" />
+        </div>
+
         <div className="flex items-center gap-6 text-sm">
           <button
             onClick={() => setIsDarkMode(!isDarkMode)}
@@ -343,13 +369,15 @@ function App() {
       {/* Main Content Grid */}
       <div className="flex-1 flex overflow-hidden bg-gray-100 p-2 gap-2 dark:bg-[#131722]">
         {/* Left Sidebar */}
-        <div className="w-64 flex-none bg-white rounded-xl border border-border overflow-hidden shadow-sm dark:bg-[#1e222d] dark:border-[#2a2e39]">
-          <CryptoList
-            cryptos={cryptos}
-            selectedSymbol={selectedSymbol}
-            onSelect={setSelectedSymbol}
-          />
-        </div>
+        {!isFullScreen && (
+          <div className="w-64 flex-none bg-white rounded-xl border border-border overflow-hidden shadow-sm dark:bg-[#1e222d] dark:border-[#2a2e39]">
+            <CryptoList
+              cryptos={cryptos}
+              selectedSymbol={selectedSymbol}
+              onSelect={setSelectedSymbol}
+            />
+          </div>
+        )}
 
         {/* Center Area */}
         <div className="flex-1 flex flex-col min-w-0 gap-2">
@@ -394,6 +422,14 @@ function App() {
                   15m
                 </button>
               </div>
+
+              <button
+                onClick={() => setIsFullScreen(!isFullScreen)}
+                className="ml-auto p-1.5 rounded-lg hover:bg-gray-100 text-text-secondary dark:hover:bg-[#2a2e39] dark:text-[#787b86] transition-colors"
+                title={isFullScreen ? "Sortir du plein écran" : "Plein écran"}
+              >
+                {isFullScreen ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+              </button>
             </div>
             <TVChart
               data={candleData}
@@ -409,26 +445,30 @@ function App() {
           </div>
 
           {/* History Section */}
-          <div className="h-1/3 min-h-[200px] bg-white rounded-xl border border-border overflow-hidden shadow-sm dark:bg-[#1e222d] dark:border-[#2a2e39]">
-            <TransactionHistory transactions={transactions} />
-          </div>
+          {!isFullScreen && (
+            <div className="h-1/3 min-h-[200px] bg-white rounded-xl border border-border overflow-hidden shadow-sm dark:bg-[#1e222d] dark:border-[#2a2e39]">
+              <TransactionHistory transactions={transactions} />
+            </div>
+          )}
         </div>
 
         {/* Right Panel */}
-        <div className="w-72 flex-none bg-white rounded-xl border border-border overflow-hidden shadow-sm dark:bg-[#1e222d] dark:border-[#2a2e39] flex flex-col">
-          <TradePanel
-            crypto={selectedCrypto}
-            balance={balance}
-            onTrade={handleTrade}
-          />
-          <BotPanel
-            botState={botState}
-            botConfig={botConfig}
-            onStart={handleBotStart}
-            onStop={handleBotStop}
-            onTradeAmountChange={handleBotTradeAmountChange}
-          />
-        </div>
+        {!isFullScreen && (
+          <div className="w-72 flex-none bg-white rounded-xl border border-border overflow-hidden shadow-sm dark:bg-[#1e222d] dark:border-[#2a2e39] flex flex-col">
+            <TradePanel
+              crypto={selectedCrypto}
+              balance={balance}
+              onTrade={handleTrade}
+            />
+            <BotPanel
+              botState={botState}
+              botConfig={botConfig}
+              onStart={handleBotStart}
+              onStop={handleBotStop}
+              onTradeAmountChange={handleBotTradeAmountChange}
+            />
+          </div>
+        )}
       </div>
     </div>
   );
