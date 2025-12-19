@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Terminal } from './Terminal';
 import type { LogEntry as UILogEntry, BotStats } from './types';
-import { getLogs, subscribeToLogs, saveLog } from './supabase';
+import { getLogs, subscribeToLogs, saveLog, getUserSettings, subscribeToUserSettings } from './supabase';
 import type { LogEntry as DBLogEntry } from './supabase';
 import './index.css';
 
@@ -15,21 +15,26 @@ const mapLog = (dbLog: DBLogEntry): UILogEntry => ({
 
 function App() {
   const [logs, setLogs] = useState<UILogEntry[]>([]);
-  const [stats] = useState<BotStats>({
-    status: 'ACTIVE', // Default to active since we are just viewing
+  const [stats, setStats] = useState<BotStats>({
+    status: 'ACTIVE',
     symbol: 'BTC',
     trades: 0,
     balance: 0,
     lastSignal: '',
+    strategyMode: 'LONG'
   });
 
   // Initial Data Load
   useEffect(() => {
     async function init() {
       const history = await getLogs(50);
-      // Reverse because history comes newest first, but terminal wants oldest first (or handles it)
-      // Terminal usually appends. If we setLogs, we want [oldest, ..., newest]
       setLogs(history.map(mapLog).reverse());
+
+      // Initial settings
+      const settings = await getUserSettings();
+      if (settings.strategy_mode) {
+        setStats(prev => ({ ...prev, strategyMode: settings.strategy_mode }));
+      }
     }
     init();
   }, []);
@@ -42,6 +47,16 @@ function App() {
         if (prev.some(l => l.id === dbLog.id)) return prev;
         return [...prev, mapLog(dbLog)];
       });
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Settings Subscription
+  useEffect(() => {
+    const unsubscribe = subscribeToUserSettings((settings) => {
+      if (settings.strategy_mode) {
+        setStats(prev => ({ ...prev, strategyMode: settings.strategy_mode }));
+      }
     });
     return () => unsubscribe();
   }, []);

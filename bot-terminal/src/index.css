@@ -142,6 +142,26 @@ body {
   color: var(--terminal-text);
 }
 
+.mode-badge {
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: bold;
+  font-size: 0.8em;
+  text-transform: uppercase;
+}
+
+.mode-badge.long {
+  background: #00ff0022;
+  color: #00ff00;
+  border: 1px solid #00ff0044;
+}
+
+.mode-badge.short {
+  background: #ff000022;
+  color: #ff0000;
+  border: 1px solid #ff000044;
+}
+
 .log-line.success {
   color: var(--accent-cyan);
 }

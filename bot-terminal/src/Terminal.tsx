@@ -60,6 +60,12 @@ export const Terminal: React.FC<TerminalProps> = ({ logs, stats, onCommand }) =>
                     <span className="stat-label">Signal</span>
                     <span className="stat-value">{stats.lastSignal || 'NONE'}</span>
                 </div>
+                <div className="stat-item">
+                    <span className="stat-label">Mode</span>
+                    <span className={`stat-value mode-badge ${stats.strategyMode?.toLowerCase()}`}>
+                        {stats.strategyMode || 'LONG'}
+                    </span>
+                </div>
             </div>
 
             {/* Log Output */}

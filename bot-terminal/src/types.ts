@@ -11,6 +11,7 @@ export interface BotStats {
     trades: number;
     balance: number;
     lastSignal: string;
+    strategyMode?: 'LONG' | 'SHORT';
     strategies?: {
         sma: boolean;
         meanReversion: boolean;
