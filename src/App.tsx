@@ -38,6 +38,7 @@ function App() {
   const [showSMA, setShowSMA] = useState<boolean>(false);
   const [timeframe, setTimeframe] = useState<'1m' | '15m'>('1m');
   const [isFullScreen, setIsFullScreen] = useState<boolean>(false);
+  const [holdings, setHoldings] = useState<Record<string, number>>({});
 
   // Bot state (Synced with Supabase)
   const [botState, setBotState] = useState<BotState>({
@@ -99,6 +100,19 @@ function App() {
         timestamp: new Date(t.created_at || Date.now())
       }));
       setTransactions(mappedTransactions);
+
+      // 4. Calculate Holdings
+      const initialHoldings: Record<string, number> = {};
+      mappedTransactions.forEach(tx => {
+        const symbol = tx.symbol;
+        if (!initialHoldings[symbol]) initialHoldings[symbol] = 0;
+        if (tx.type === 'BUY') {
+          initialHoldings[symbol] += tx.amount;
+        } else {
+          initialHoldings[symbol] -= tx.amount;
+        }
+      });
+      setHoldings(initialHoldings);
     }
 
     initData();
@@ -191,6 +205,15 @@ function App() {
         tradesCount: prev.tradesCount + 1,
         lastTradeTime: newTx.timestamp,
       }));
+
+      // Update holdings
+      setHoldings(prev => {
+        const current = prev[newTx.symbol] || 0;
+        return {
+          ...prev,
+          [newTx.symbol]: newTx.type === 'BUY' ? current + newTx.amount : current - newTx.amount
+        };
+      });
     });
 
     return () => unsubscribe();
@@ -258,12 +281,26 @@ function App() {
         return newBalance;
       });
     } else {
+      const currentOwned = holdings[selectedSymbol] || 0;
+      if (amount > currentOwned) {
+        if (!reason) alert("Insufficient crypto holdings!");
+        return;
+      }
       setBalance(b => {
         const newBalance = b + total;
         updateBalance(newBalance).catch(console.error);
         return newBalance;
       });
     }
+
+    // Update local holdings immediately
+    setHoldings(prev => {
+      const current = prev[selectedSymbol] || 0;
+      return {
+        ...prev,
+        [selectedSymbol]: type === 'BUY' ? current + amount : current - amount
+      };
+    });
 
     const newTx: Transaction = {
       id: Date.now().toString() + (reason ? '-bot' : ''),
@@ -439,6 +476,7 @@ function App() {
           <TradePanel
             crypto={selectedCrypto}
             balance={balance}
+            ownedAmount={holdings[selectedSymbol] || 0}
             onTrade={handleTrade}
           />
           <BotPanel

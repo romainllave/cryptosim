@@ -1,24 +1,26 @@
 import React, { useState } from 'react';
 import type { Crypto } from '../../types';
 import { clsx } from 'clsx';
-import { Wallet } from 'lucide-react';
+import { Wallet, Activity } from 'lucide-react';
 
 interface TradePanelProps {
     crypto: Crypto;
     balance: number;
+    ownedAmount: number;
     onTrade: (type: 'BUY' | 'SELL', amount: number) => void;
 }
 
-export const TradePanel: React.FC<TradePanelProps> = ({ crypto, balance, onTrade }) => {
+export const TradePanel: React.FC<TradePanelProps> = ({ crypto, balance, ownedAmount, onTrade }) => {
     const [amount, setAmount] = useState<string>('0');
     const [type, setType] = useState<'BUY' | 'SELL'>('BUY');
 
-    const total = parseFloat(amount || '0') * crypto.price;
+    const amountVal = parseFloat(amount || '0');
+    const total = amountVal * crypto.price;
+    const isInsufficientFunds = type === 'BUY' ? total > balance : amountVal > ownedAmount;
 
     const handleTrade = () => {
-        const val = parseFloat(amount);
-        if (val > 0) {
-            onTrade(type, val);
+        if (amountVal > 0 && !isInsufficientFunds) {
+            onTrade(type, amountVal);
             setAmount('0');
         }
     };
@@ -29,8 +31,13 @@ export const TradePanel: React.FC<TradePanelProps> = ({ crypto, balance, onTrade
                 <h2 className="text-lg font-bold text-text-primary dark:text-[#d1d4dc] flex items-center justify-between">
                     Trade {crypto.symbol}
                 </h2>
-                <div className="text-xs text-text-secondary dark:text-[#787b86] mt-1 flex items-center gap-1">
-                    <Wallet size={12} /> Balance: {balance.toFixed(2)} USDT
+                <div className="text-xs text-text-secondary dark:text-[#787b86] mt-1 flex flex-col gap-1">
+                    <div className="flex items-center gap-1">
+                        <Wallet size={12} /> Balance: {balance.toFixed(2)} USDT
+                    </div>
+                    <div className="flex items-center gap-1">
+                        <Activity size={12} /> Owned: {ownedAmount.toFixed(8)} {crypto.symbol}
+                    </div>
                 </div>
             </div>
 
@@ -72,28 +79,46 @@ export const TradePanel: React.FC<TradePanelProps> = ({ crypto, balance, onTrade
                             type="number"
                             value={amount}
                             onChange={e => setAmount(e.target.value)}
-                            className="w-full p-2 border border-border rounded focus:outline-none focus:border-blue-500 font-medium dark:bg-[#2a2e39] dark:border-[#2a2e39] dark:text-[#d1d4dc]"
+                            className={clsx(
+                                "w-full p-2 border rounded focus:outline-none font-medium dark:bg-[#2a2e39] dark:text-[#d1d4dc]",
+                                isInsufficientFunds
+                                    ? "border-red-500 focus:border-red-500"
+                                    : "border-border focus:border-blue-500 dark:border-[#2a2e39]"
+                            )}
                             min="0"
                             step="0.0001"
                         />
+                        {isInsufficientFunds && (
+                            <p className="text-[10px] text-red-500 mt-1">
+                                {type === 'BUY' ? "Solde USDT insuffisant" : `Quantité de ${crypto.symbol} insuffisante`}
+                            </p>
+                        )}
                     </div>
                 </div>
 
                 <div className="mt-auto">
                     <div className="flex justify-between text-xs text-text-secondary dark:text-[#787b86] mb-2">
                         <span>Total</span>
-                        <span className="dark:text-[#d1d4dc]">{total.toFixed(2)} USDT</span>
+                        <span className={clsx(
+                            "font-medium",
+                            type === 'BUY' && isInsufficientFunds ? "text-red-500" : "dark:text-[#d1d4dc]"
+                        )}>
+                            {total.toFixed(2)} USDT
+                        </span>
                     </div>
                     <button
                         onClick={handleTrade}
-                        disabled={parseFloat(amount || '0') <= 0}
+                        disabled={amountVal <= 0 || isInsufficientFunds}
                         className={clsx(
                             "w-full py-3 rounded font-bold text-white transition-opacity",
-                            parseFloat(amount || '0') <= 0 ? "opacity-50 cursor-not-allowed" : "hover:opacity-90",
+                            (amountVal <= 0 || isInsufficientFunds) ? "opacity-50 cursor-not-allowed" : "hover:opacity-90",
                             type === 'BUY' ? "bg-up" : "bg-down"
                         )}
                     >
-                        {type} {crypto.symbol}
+                        {isInsufficientFunds
+                            ? (type === 'BUY' ? "Fonds Insuffisants" : "Quantité Insuffisante")
+                            : `${type === 'BUY' ? 'Buy' : 'Sell'} ${crypto.symbol}`
+                        }
                     </button>
                 </div>
             </div>
