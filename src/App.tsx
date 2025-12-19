@@ -1,14 +1,15 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { CryptoList } from './components/Sidebar/CryptoList';
 import { TVChart } from './components/Chart/TVChart';
 import { TransactionHistory } from './components/History/TransactionHistory';
 import { TradePanel } from './components/Trading/TradePanel';
 import { BotPanel } from './components/Bot/BotPanel';
 import { HoldingsPage } from './components/Holdings/HoldingsPage';
+import { SettingsDropdown } from './components/Settings/SettingsDropdown';
 import type { Crypto, Transaction } from './types';
 import { MOCK_CRYPTOS } from './types';
 import type { CandleData } from './utils/chartData';
-import { Activity, Moon, Sun, Maximize2, Minimize2 } from 'lucide-react';
+import { Activity, Moon, Sun, Maximize2, Minimize2, Settings } from 'lucide-react';
 import { clsx } from 'clsx';
 import { fetchKlines, subscribeToTickers, subscribeToKline } from './services/binance';
 // import { loadBalance, saveBalance, loadTransactions, saveTransactions } from './services/storage'; // Deprecated
@@ -41,6 +42,8 @@ function App() {
   const [isFullScreen, setIsFullScreen] = useState<boolean>(false);
   const [holdings, setHoldings] = useState<Record<string, number>>({});
   const [view, setView] = useState<'trading' | 'holdings'>('trading');
+  const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
+  const settingsRef = useRef<HTMLDivElement>(null);
 
   // Bot state (Synced with Supabase)
   const [botState, setBotState] = useState<BotState>({
@@ -135,6 +138,17 @@ function App() {
   useEffect(() => {
     updateUserSettings({ last_symbol: selectedSymbol });
   }, [selectedSymbol]);
+
+  // Close settings on outside click
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (settingsRef.current && !settingsRef.current.contains(event.target as Node)) {
+        setIsSettingsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Subscribe to Bot Status from Supabase
   useEffect(() => {
@@ -386,7 +400,21 @@ function App() {
           <div className="font-medium">
             Balance: <span className="font-bold text-blue-600">{balance.toFixed(2)} USDT</span>
           </div>
-          <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center text-xs font-bold text-text-secondary">
+          <div className="relative" ref={settingsRef}>
+            <button
+              onClick={() => setIsSettingsOpen(!isSettingsOpen)}
+              className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-[#2a2e39] transition-colors relative"
+            >
+              <Settings size={20} className={clsx("transition-transform duration-300", isSettingsOpen && "rotate-90")} />
+            </button>
+            <SettingsDropdown
+              isOpen={isSettingsOpen}
+              isDarkMode={isDarkMode}
+              setIsDarkMode={setIsDarkMode}
+              balance={balance}
+            />
+          </div>
+          <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-xs font-bold text-white">
             RL
           </div>
         </div>
