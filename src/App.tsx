@@ -4,6 +4,7 @@ import { TVChart } from './components/Chart/TVChart';
 import { TransactionHistory } from './components/History/TransactionHistory';
 import { TradePanel } from './components/Trading/TradePanel';
 import { BotPanel } from './components/Bot/BotPanel';
+import { HoldingsPage } from './components/Holdings/HoldingsPage';
 import type { Crypto, Transaction } from './types';
 import { MOCK_CRYPTOS } from './types';
 import type { CandleData } from './utils/chartData';
@@ -39,6 +40,7 @@ function App() {
   const [timeframe, setTimeframe] = useState<'1m' | '15m'>('1m');
   const [isFullScreen, setIsFullScreen] = useState<boolean>(false);
   const [holdings, setHoldings] = useState<Record<string, number>>({});
+  const [view, setView] = useState<'trading' | 'holdings'>('trading');
 
   // Bot state (Synced with Supabase)
   const [botState, setBotState] = useState<BotState>({
@@ -347,6 +349,17 @@ function App() {
             <Activity size={20} />
           </div>
           <h1 className="font-bold text-lg tracking-tight">CryptoSim</h1>
+          <button
+            onClick={() => setView('holdings')}
+            className={clsx(
+              "ml-4 px-4 py-1.5 rounded-full text-sm font-bold transition-all",
+              view === 'holdings'
+                ? "bg-blue-600 text-white"
+                : "bg-gray-100 dark:bg-[#2a2e39] text-text-primary dark:text-[#d1d4dc] hover:bg-gray-200 dark:hover:bg-[#363a45]"
+            )}
+          >
+            Saison
+          </button>
         </div>
 
         <div className="flex items-center gap-6 text-sm">
@@ -379,115 +392,123 @@ function App() {
         </div>
       </header>
 
-      {/* Main Content Grid */}
-      <div className="flex-1 flex overflow-hidden bg-gray-100 p-2 gap-2 dark:bg-[#131722] relative">
-        {/* Left Sidebar */}
-        <div className={clsx(
-          "w-64 flex-none bg-white rounded-xl border border-border overflow-hidden shadow-sm dark:bg-[#1e222d] dark:border-[#2a2e39] transition-all duration-500 ease-in-out",
-          isFullScreen ? "-ml-72 opacity-0" : "ml-0 opacity-100"
-        )}>
-          <CryptoList
-            cryptos={cryptos}
-            selectedSymbol={selectedSymbol}
-            onSelect={setSelectedSymbol}
-          />
-        </div>
-
-        {/* Center Area */}
-        <div className="flex-1 flex flex-col min-w-0 gap-2 transition-all duration-500 ease-in-out">
-          {/* Chart Section */}
-          <div className="flex-1 relative border border-border bg-white rounded-xl overflow-hidden shadow-sm dark:bg-[#1e222d] dark:border-[#2a2e39]">
-            <div className="absolute top-4 left-4 z-10 flex gap-2">
-              <span className="font-bold text-xl">{selectedSymbol}USDT</span>
-              <span className="text-sm text-text-secondary mt-1 dark:text-[#787b86]">CryptoSim Pro</span>
-              <button
-                onClick={() => setShowSMA(!showSMA)}
-                className={clsx(
-                  "ml-4 px-2 py-1 text-xs font-semibold rounded transition-colors",
-                  showSMA
-                    ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
-                    : "bg-gray-100 text-text-secondary dark:bg-[#2a2e39] dark:text-[#787b86]"
-                )}
-              >
-                SMA 20
-              </button>
-
-              <div className="flex bg-gray-100 rounded p-0.5 ml-2 dark:bg-[#2a2e39]">
-                <button
-                  onClick={() => setTimeframe('1m')}
-                  className={clsx(
-                    "px-2 py-1 text-xs font-semibold rounded transition-all",
-                    timeframe === '1m'
-                      ? "bg-white text-blue-600 shadow-sm dark:bg-[#1e222d] dark:text-blue-400"
-                      : "text-text-secondary hover:text-text-primary dark:text-[#787b86] dark:hover:text-[#d1d4dc]"
-                  )}
-                >
-                  1m
-                </button>
-                <button
-                  onClick={() => setTimeframe('15m')}
-                  className={clsx(
-                    "px-2 py-1 text-xs font-semibold rounded transition-all",
-                    timeframe === '15m'
-                      ? "bg-white text-blue-600 shadow-sm dark:bg-[#1e222d] dark:text-blue-400"
-                      : "text-text-secondary hover:text-text-primary dark:text-[#787b86] dark:hover:text-[#d1d4dc]"
-                  )}
-                >
-                  15m
-                </button>
-              </div>
-
-              <button
-                onClick={() => setIsFullScreen(!isFullScreen)}
-                className="ml-auto p-1.5 rounded-lg hover:bg-gray-100 text-text-secondary dark:hover:bg-[#2a2e39] dark:text-[#787b86] transition-colors"
-                title={isFullScreen ? "Sortir du plein écran" : "Plein écran"}
-              >
-                {isFullScreen ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
-              </button>
-            </div>
-            <TVChart
-              data={candleData}
-              indicators={showSMA ? { sma: smaData } : undefined}
-              isFullScreen={isFullScreen}
-              colors={{
-                backgroundColor: isDarkMode ? '#1e222d' : 'white',
-                textColor: isDarkMode ? '#d1d4dc' : 'black',
-                lineColor: isDarkMode ? '#2962ff' : undefined,
-                areaTopColor: isDarkMode ? 'rgba(41, 98, 255, 0.3)' : undefined,
-                areaBottomColor: isDarkMode ? 'rgba(41, 98, 255, 0)' : undefined,
-              }}
+      {/* Main Content Area */}
+      {view === 'holdings' ? (
+        <HoldingsPage
+          holdings={holdings}
+          cryptos={cryptos}
+          onBack={() => setView('trading')}
+        />
+      ) : (
+        <div className="flex-1 flex overflow-hidden bg-gray-100 p-2 gap-2 dark:bg-[#131722] relative">
+          {/* Left Sidebar */}
+          <div className={clsx(
+            "w-64 flex-none bg-white rounded-xl border border-border overflow-hidden shadow-sm dark:bg-[#1e222d] dark:border-[#2a2e39] transition-all duration-500 ease-in-out",
+            isFullScreen ? "-ml-72 opacity-0" : "ml-0 opacity-100"
+          )}>
+            <CryptoList
+              cryptos={cryptos}
+              selectedSymbol={selectedSymbol}
+              onSelect={setSelectedSymbol}
             />
           </div>
 
-          {/* History Section */}
+          {/* Center Area */}
+          <div className="flex-1 flex flex-col min-w-0 gap-2 transition-all duration-500 ease-in-out">
+            {/* Chart Section */}
+            <div className="flex-1 relative border border-border bg-white rounded-xl overflow-hidden shadow-sm dark:bg-[#1e222d] dark:border-[#2a2e39]">
+              <div className="absolute top-4 left-4 z-10 flex gap-2">
+                <span className="font-bold text-xl">{selectedSymbol}USDT</span>
+                <span className="text-sm text-text-secondary mt-1 dark:text-[#787b86]">CryptoSim Pro</span>
+                <button
+                  onClick={() => setShowSMA(!showSMA)}
+                  className={clsx(
+                    "ml-4 px-2 py-1 text-xs font-semibold rounded transition-colors",
+                    showSMA
+                      ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
+                      : "bg-gray-100 text-text-secondary dark:bg-[#2a2e39] dark:text-[#787b86]"
+                  )}
+                >
+                  SMA 20
+                </button>
+
+                <div className="flex bg-gray-100 rounded p-0.5 ml-2 dark:bg-[#2a2e39]">
+                  <button
+                    onClick={() => setTimeframe('1m')}
+                    className={clsx(
+                      "px-2 py-1 text-xs font-semibold rounded transition-all",
+                      timeframe === '1m'
+                        ? "bg-white text-blue-600 shadow-sm dark:bg-[#1e222d] dark:text-blue-400"
+                        : "text-text-secondary hover:text-text-primary dark:text-[#787b86] dark:hover:text-[#d1d4dc]"
+                    )}
+                  >
+                    1m
+                  </button>
+                  <button
+                    onClick={() => setTimeframe('15m')}
+                    className={clsx(
+                      "px-2 py-1 text-xs font-semibold rounded transition-all",
+                      timeframe === '15m'
+                        ? "bg-white text-blue-600 shadow-sm dark:bg-[#1e222d] dark:text-blue-400"
+                        : "text-text-secondary hover:text-text-primary dark:text-[#787b86] dark:hover:text-[#d1d4dc]"
+                    )}
+                  >
+                    15m
+                  </button>
+                </div>
+
+                <button
+                  onClick={() => setIsFullScreen(!isFullScreen)}
+                  className="ml-auto p-1.5 rounded-lg hover:bg-gray-100 text-text-secondary dark:hover:bg-[#2a2e39] dark:text-[#787b86] transition-colors"
+                  title={isFullScreen ? "Sortir du plein écran" : "Plein écran"}
+                >
+                  {isFullScreen ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+                </button>
+              </div>
+              <TVChart
+                data={candleData}
+                indicators={showSMA ? { sma: smaData } : undefined}
+                isFullScreen={isFullScreen}
+                colors={{
+                  backgroundColor: isDarkMode ? '#1e222d' : 'white',
+                  textColor: isDarkMode ? '#d1d4dc' : 'black',
+                  lineColor: isDarkMode ? '#2962ff' : undefined,
+                  areaTopColor: isDarkMode ? 'rgba(41, 98, 255, 0.3)' : undefined,
+                  areaBottomColor: isDarkMode ? 'rgba(41, 98, 255, 0)' : undefined,
+                }}
+              />
+            </div>
+
+            {/* History Section */}
+            <div className={clsx(
+              "bg-white rounded-xl border border-border overflow-hidden shadow-sm dark:bg-[#1e222d] dark:border-[#2a2e39] transition-all duration-500 ease-in-out overflow-y-hidden",
+              isFullScreen ? "h-0 opacity-0 mt-0" : "h-1/3 min-h-[200px] opacity-100 mt-0"
+            )}>
+              <TransactionHistory transactions={transactions} />
+            </div>
+          </div>
+
+          {/* Right Panel */}
           <div className={clsx(
-            "bg-white rounded-xl border border-border overflow-hidden shadow-sm dark:bg-[#1e222d] dark:border-[#2a2e39] transition-all duration-500 ease-in-out overflow-y-hidden",
-            isFullScreen ? "h-0 opacity-0 mt-0" : "h-1/3 min-h-[200px] opacity-100 mt-0"
+            "w-72 flex-none bg-white rounded-xl border border-border flex flex-col transition-all duration-500 ease-in-out overflow-y-auto custom-scrollbar dark:bg-[#1e222d] dark:border-[#2a2e39] shadow-sm",
+            isFullScreen ? "-mr-80 opacity-0" : "mr-0 opacity-100"
           )}>
-            <TransactionHistory transactions={transactions} />
+            <TradePanel
+              crypto={selectedCrypto}
+              balance={balance}
+              ownedAmount={holdings[selectedSymbol] || 0}
+              onTrade={handleTrade}
+            />
+            <BotPanel
+              botState={botState}
+              botConfig={botConfig}
+              onStart={handleBotStart}
+              onStop={handleBotStop}
+              onTradeAmountChange={handleBotTradeAmountChange}
+            />
           </div>
         </div>
-
-        {/* Right Panel */}
-        <div className={clsx(
-          "w-72 flex-none bg-white rounded-xl border border-border flex flex-col transition-all duration-500 ease-in-out overflow-y-auto custom-scrollbar dark:bg-[#1e222d] dark:border-[#2a2e39] shadow-sm",
-          isFullScreen ? "-mr-80 opacity-0" : "mr-0 opacity-100"
-        )}>
-          <TradePanel
-            crypto={selectedCrypto}
-            balance={balance}
-            ownedAmount={holdings[selectedSymbol] || 0}
-            onTrade={handleTrade}
-          />
-          <BotPanel
-            botState={botState}
-            botConfig={botConfig}
-            onStart={handleBotStart}
-            onStop={handleBotStop}
-            onTradeAmountChange={handleBotTradeAmountChange}
-          />
-        </div>
-      </div>
+      )}
     </div>
   );
 }
