@@ -6,6 +6,7 @@ import { TradePanel } from './components/Trading/TradePanel';
 import { BotPanel } from './components/Bot/BotPanel';
 import { HoldingsPage } from './components/Holdings/HoldingsPage';
 import { SettingsDropdown } from './components/Settings/SettingsDropdown';
+import { StrategyPage } from './components/Strategy/StrategyPage';
 import type { Crypto, Transaction } from './types';
 import { MOCK_CRYPTOS } from './types';
 import type { CandleData } from './utils/chartData';
@@ -41,8 +42,9 @@ function App() {
   const [timeframe, setTimeframe] = useState<'1m' | '15m'>('1m');
   const [isFullScreen, setIsFullScreen] = useState<boolean>(false);
   const [holdings, setHoldings] = useState<Record<string, number>>({});
-  const [view, setView] = useState<'trading' | 'holdings'>('trading');
+  const [view, setView] = useState<'trading' | 'holdings' | 'strategy'>('trading');
   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
+  const [strategyMode, setStrategyMode] = useState<'LONG' | 'SHORT'>('LONG');
   const settingsRef = useRef<HTMLDivElement>(null);
 
   // Bot state (Synced with Supabase)
@@ -412,6 +414,10 @@ function App() {
               isDarkMode={isDarkMode}
               setIsDarkMode={setIsDarkMode}
               balance={balance}
+              onNavigate={(newView) => {
+                setView(newView);
+                setIsSettingsOpen(false);
+              }}
             />
           </div>
           <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-xs font-bold text-white">
@@ -426,6 +432,15 @@ function App() {
           holdings={holdings}
           cryptos={cryptos}
           onBack={() => setView('trading')}
+        />
+      ) : view === 'strategy' ? (
+        <StrategyPage
+          currentMode={strategyMode}
+          onBack={() => setView('trading')}
+          onSave={(mode) => {
+            setStrategyMode(mode);
+            setView('trading');
+          }}
         />
       ) : (
         <div className="flex-1 flex overflow-hidden bg-gray-100 p-2 gap-2 dark:bg-[#131722] relative">

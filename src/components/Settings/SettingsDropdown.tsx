@@ -19,13 +19,15 @@ interface SettingsDropdownProps {
     isDarkMode: boolean;
     setIsDarkMode: (val: boolean) => void;
     balance: number;
+    onNavigate: (view: 'trading' | 'holdings' | 'strategy') => void;
 }
 
 export const SettingsDropdown: React.FC<SettingsDropdownProps> = ({
     isOpen,
     isDarkMode,
     setIsDarkMode,
-    balance
+    balance,
+    onNavigate
 }) => {
     if (!isOpen) return null;
 
@@ -71,7 +73,12 @@ export const SettingsDropdown: React.FC<SettingsDropdownProps> = ({
                 <div className="px-4 py-2 text-[10px] uppercase font-bold text-text-secondary dark:text-[#787b86] tracking-wider">
                     Bot de Trading
                 </div>
-                <button className="w-full px-4 py-2 text-sm flex items-center justify-between hover:bg-gray-100 dark:hover:bg-[#2a2e39] transition-colors text-text-primary dark:text-[#d1d4dc]">
+                <button
+                    onClick={() => {
+                        onNavigate('strategy');
+                    }}
+                    className="w-full px-4 py-2 text-sm flex items-center justify-between hover:bg-gray-100 dark:hover:bg-[#2a2e39] transition-colors text-text-primary dark:text-[#d1d4dc]"
+                >
                     <div className="flex items-center gap-3">
                         <Zap size={16} className="text-yellow-500" />
                         <span>Paramètres Stratégie</span>
