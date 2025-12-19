@@ -17,44 +17,34 @@ export async function sendDiscordReport(report: AnalysisReport): Promise<void> {
     const actionColor = report.action === 'BUY' ? 0x00ff00 : report.action === 'SELL' ? 0xff0000 : 0x808080;
 
     const embed = {
-        title: `📊 Market Analysis - ${report.symbol}/USDT`,
+        title: `📊 Analyse du Marché - ${report.symbol}/USDT`,
         color: actionColor,
         fields: [
             {
-                name: '📈 SMA Trend',
-                value: `${report.smaScore.toFixed(1)}%`,
-                inline: true
-            },
-            {
-                name: '📉 Mean Reversion',
-                value: `${report.meanRevScore.toFixed(1)}%`,
-                inline: true
-            },
-            {
-                name: '🚀 Momentum',
+                name: '📉 RSI (9)',
                 value: `${report.momentumScore.toFixed(1)}%`,
                 inline: true
             },
             {
-                name: '🎯 Probability',
-                value: `**${report.probability.toFixed(1)}%** chance of increase`,
+                name: '🎯 Probabilité',
+                value: `**${report.probability.toFixed(1)}%**`,
                 inline: false
             },
             {
                 name: `${actionEmoji} Action`,
                 value: report.action === 'HOLD'
-                    ? 'HOLD - Waiting for clearer signal'
+                    ? 'ATTENTE - Signal peu clair'
                     : `**${report.action}** ${report.tradeAmount ? `$${report.tradeAmount.toFixed(2)}` : ''} @ $${report.price?.toFixed(2) || 'N/A'}`,
                 inline: false
             },
             {
-                name: '💰 Portfolio Balance',
+                name: '💰 Solde Portefeuille',
                 value: `$${report.balance.toFixed(2)}`,
                 inline: true
             }
         ],
         footer: {
-            text: '🤖 Trading Bot | Next analysis in 5 minutes'
+            text: 'Bot 2.1 - Stratégie Réactive | Analyse toutes les minutes'
         },
         timestamp: new Date().toISOString()
     };

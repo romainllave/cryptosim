@@ -39,7 +39,7 @@ export async function sendOpportunityAlert(alert: OpportunityAlert): Promise<voi
             { name: '💰 Prix', value: `$${alert.price.toFixed(2)}`, inline: true },
             { name: '🎯 Signal', value: alert.action, inline: true }
         ],
-        footer: { text: 'Bot 2.0 - Analyse Temps Réel' },
+        footer: { text: 'Bot 2.1 - Stratégie Réactive' },
         timestamp: new Date().toISOString()
     };
 
@@ -77,7 +77,7 @@ export async function sendTradeAlert(alert: TradeAlertReport): Promise<void> {
         title,
         color,
         fields,
-        footer: { text: 'Bot 2.0 - Trade Exécuté' },
+        footer: { text: 'Bot 2.1 - Trade Exécuté' },
         timestamp: new Date().toISOString()
     };
 
@@ -97,7 +97,7 @@ export async function sendDiscordReport(report: AnalysisReport): Promise<void> {
     const actionColor = report.action === 'BUY' ? 0x00ff00 : report.action === 'SELL' ? 0xff0000 : 0x808080;
 
     const embed = {
-        title: `📊 Monitoring - ${report.symbol}/USDT`,
+        title: `📊 Analyse du Marché - ${report.symbol}/USDT`,
         color: actionColor,
         description: `**Probabilité Globale: ${report.probability.toFixed(1)}%**`,
         fields: [
@@ -112,7 +112,7 @@ export async function sendDiscordReport(report: AnalysisReport): Promise<void> {
                 inline: true
             }
         ],
-        footer: { text: 'Bot 2.0 - Rapport d\'Analyse' },
+        footer: { text: 'Bot 2.1 - Rapport d\'Analyse' },
         timestamp: new Date().toISOString()
     };
 

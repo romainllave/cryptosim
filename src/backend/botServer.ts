@@ -47,8 +47,8 @@ async function main() {
         tradeAmount: 0.001,
         enabled: false,
         risk: {
-            stopLossPercent: 2,
-            takeProfitPercent: 5,
+            stopLossPercent: 1.5,
+            takeProfitPercent: 2.5,
             maxDrawdownPercent: 10,
             maxTradeBalancePercent: 20
         },
@@ -65,7 +65,7 @@ async function main() {
     };
 
     // Initial cleanup of strategy logic
-    console.log('✅ Bot using single custom strategy (55/45)');
+    console.log('✅ Bot using single reactive strategy (55/48)');
 
     // Ensure status is synced as IDLE on startup
     await updateBotStatus('IDLE', 'BTC');
@@ -136,7 +136,7 @@ async function main() {
                 const result = analysisResults[0];
                 const probability = result.confidence;
 
-                // ========== OPPORTUNITY DETECTION (Seuil: 55% BUY, 45% SELL) ==========
+                // ========== OPPORTUNITY DETECTION (Seuil: 55% BUY, 48% SELL) ==========
                 const now = Date.now();
                 const canSendAlert = (now - lastOpportunityAlertTime) > OPPORTUNITY_COOLDOWN_MS;
 
