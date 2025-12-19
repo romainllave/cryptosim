@@ -38,9 +38,6 @@ function App() {
   const [showSMA, setShowSMA] = useState<boolean>(false);
   const [timeframe, setTimeframe] = useState<'1m' | '15m'>('1m');
   const [isFullScreen, setIsFullScreen] = useState<boolean>(false);
-  const [activeCategory, setActiveCategory] = useState<string>('Toutes');
-
-  const categories = ['Toutes', 'Favoris', 'Crypto', 'DeFi', 'NFTs', 'Meme', 'Layer 1', 'Layer 2', 'Web3', 'AI', 'Storage'];
 
   // Bot state (Synced with Supabase)
   const [botState, setBotState] = useState<BotState>({
@@ -314,27 +311,6 @@ function App() {
           </div>
           <h1 className="font-bold text-lg tracking-tight">CryptoSim</h1>
         </div>
-        <div className="flex-1 px-8 relative overflow-hidden group">
-          <div className="flex items-center gap-6 overflow-x-auto no-scrollbar scroll-smooth h-full" id="category-scroll">
-            {categories.map(cat => (
-              <button
-                key={cat}
-                onClick={() => setActiveCategory(cat)}
-                className={clsx(
-                  "whitespace-nowrap px-1 h-full flex items-center border-b-2 transition-all text-sm font-medium",
-                  activeCategory === cat
-                    ? "border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400"
-                    : "border-transparent text-text-secondary hover:text-text-primary dark:text-[#787b86] dark:hover:text-[#d1d4dc]"
-                )}
-              >
-                {cat}
-              </button>
-            ))}
-          </div>
-          {/* Shadow gradients for scroll indications */}
-          <div className="absolute left-6 top-0 bottom-0 w-4 bg-gradient-to-r from-white to-transparent dark:from-[#1e222d] pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity" />
-          <div className="absolute right-6 top-0 bottom-0 w-4 bg-gradient-to-l from-white to-transparent dark:from-[#1e222d] pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity" />
-        </div>
 
         <div className="flex items-center gap-6 text-sm">
           <button
@@ -457,7 +433,7 @@ function App() {
 
         {/* Right Panel */}
         <div className={clsx(
-          "w-72 flex-none bg-white rounded-xl border border-border overflow-hidden shadow-sm dark:bg-[#1e222d] dark:border-[#2a2e39] flex flex-col transition-all duration-500 ease-in-out",
+          "w-72 flex-none bg-white rounded-xl border border-border flex flex-col transition-all duration-500 ease-in-out overflow-y-auto custom-scrollbar dark:bg-[#1e222d] dark:border-[#2a2e39] shadow-sm",
           isFullScreen ? "-mr-80 opacity-0" : "mr-0 opacity-100"
         )}>
           <TradePanel
