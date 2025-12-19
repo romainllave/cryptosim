@@ -16,6 +16,7 @@ export interface Position {
     entryTime: Date;
     stopLoss?: number;
     takeProfit?: number;
+    highestPrice?: number; // Track peak price for trailing stop
     status: 'OPEN' | 'CLOSED';
     exitPrice?: number;
     exitTime?: Date;

@@ -23,7 +23,7 @@ export function calculateGlobalProbability(candles: CandleData[]): StrategyResul
     if (emaShort < emaLong) trendScore = 30; // Bearish
 
     // 2. ANALYSE DE MOMENTUM (Poids: 30%)
-    const rsi = calculateRSI(candles, 14);
+    const rsi = calculateRSI(candles, 9);
     let momentumScore = 50;
     if (rsi < 40) momentumScore = 70; // Bullish divergence possible
     if (rsi > 60) momentumScore = 30; // Bearish divergence possible
@@ -40,7 +40,7 @@ export function calculateGlobalProbability(candles: CandleData[]): StrategyResul
     // DÉTERMINATION DU SIGNAL
     let signal: Signal = 'HOLD';
     if (finalScore >= 55) signal = 'BUY';
-    if (finalScore <= 45) signal = 'SELL';
+    if (finalScore <= 48) signal = 'SELL';
 
     return {
         strategy: 'Probabilité',

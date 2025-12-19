@@ -16,8 +16,8 @@ export class TradingBot {
             symbol: 'BTC',
             enabled: false,
             risk: {
-                stopLossPercent: 2,
-                takeProfitPercent: 5,
+                stopLossPercent: 1.5,
+                takeProfitPercent: 2.5,
                 maxDrawdownPercent: 10,
                 maxTradeBalancePercent: 20,
                 ...config.risk
@@ -115,7 +115,7 @@ export class TradingBot {
 
         if (probability >= 55) {
             signal = 'BUY';
-        } else if (probability <= 45) {
+        } else if (probability <= 48) {
             signal = 'SELL';
         }
 
@@ -126,7 +126,7 @@ export class TradingBot {
             // Open position if allowed
             this.executeTrade('BUY', results, currentPrice);
         } else if (signal === 'SELL' && this.state.currentPosition) {
-            // Close position if it exists (probability <= 45%)
+            // Close position if it exists (probability <= 48%)
             this.closePosition('SELL', `Probability dropped to ${probability.toFixed(1)}%`, currentPrice);
         }
 
@@ -137,14 +137,25 @@ export class TradingBot {
         const pos = this.state.currentPosition;
         if (!pos) return;
 
-        const pnl = (currentPrice - pos.entryPrice) / pos.entryPrice * 100;
+        // Update highest price for trailing stop
+        if (!pos.highestPrice || currentPrice > pos.highestPrice) {
+            pos.highestPrice = currentPrice;
+        }
 
-        // Take Profit
-        if (pnl >= pos.takeProfit) {
+        const pnl = (currentPrice - pos.entryPrice) / pos.entryPrice * 100;
+        const dropFromPeak = ((pos.highestPrice - currentPrice) / pos.highestPrice) * 100;
+
+        // 1. Take Profit
+        if (pos.takeProfit !== undefined && pnl >= pos.takeProfit) {
             this.closePosition('SELL', `Take Profit hit: +${pnl.toFixed(2)}%`, currentPrice);
         }
-        // Stop Loss
-        else if (pnl <= -pos.stopLoss) {
+        // 2. Trailing Stop Loss (Protect profits)
+        // If we were at least 0.5% in profit and price dropped 0.5% from peak
+        else if (pnl >= 0.5 && dropFromPeak >= 0.5) {
+            this.closePosition('SELL', `Trailing Stop hit: Gain ${pnl.toFixed(2)}% (Dropped ${dropFromPeak.toFixed(2)}% from peak)`, currentPrice);
+        }
+        // 3. Hard Stop Loss
+        else if (pos.stopLoss !== undefined && pnl <= -pos.stopLoss) {
             this.closePosition('SELL', `Stop Loss hit: ${pnl.toFixed(2)}%`, currentPrice);
         }
     }
@@ -187,6 +198,7 @@ export class TradingBot {
                 entryTime: new Date(),
                 stopLoss,
                 takeProfit,
+                highestPrice: currentPrice, // Initialize with entry price
                 status: 'OPEN'
             };
 
