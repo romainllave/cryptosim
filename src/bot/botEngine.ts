@@ -92,24 +92,28 @@ export class TradingBot {
      * Analyze market data and potentially execute a trade
      */
     analyze(candles: CandleData[]): StrategyResult[] {
-        if (!this.config.enabled || candles.length < 25) {
+        if (candles.length < 25) {
             return this.state.lastAnalysis;
         }
 
         const currentPrice = candles[candles.length - 1].close;
 
-        // 1. Check existing position for SL/TP
+        // 1. ALWAYS run the unified probability strategy (keeps analysis fresh)
+        const result = calculateGlobalProbability(candles);
+        const results = [result];
+        this.state.lastAnalysis = results;
+
+        // 2. ONLY proceed with risk management and execution if enabled
+        if (!this.config.enabled) {
+            return results;
+        }
+
+        // 3. Check existing position for SL/TP/Trailing
         if (this.state.currentPosition) {
             this.checkRiskManagement(currentPrice);
         }
 
-        // 2. Run the unified probability strategy
-        const result = calculateGlobalProbability(candles);
-        const results = [result];
-
-        this.state.lastAnalysis = results;
-
-        // 3. Logic based on probability thresholds (55% / 45%)
+        // 4. Logic based on probability thresholds (55% / 48%)
         const probability = result.confidence;
         let signal: Signal = 'HOLD';
 
@@ -121,7 +125,7 @@ export class TradingBot {
 
         this.state.lastSignal = signal;
 
-        // 4. Execution logic based on probability thresholds (55% / 45%)
+        // 5. Execution logic
         if (signal === 'BUY' && this.canTrade('BUY')) {
             // Open position if allowed
             this.executeTrade('BUY', results, currentPrice);

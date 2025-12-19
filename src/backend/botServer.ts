@@ -154,7 +154,7 @@ async function main() {
                         }).catch(console.error);
 
                         lastOpportunityAlertTime = now;
-                    } else if (probability <= 45) {
+                    } else if (probability <= 48) {
                         // SELL Opportunity detected!
                         console.log(`⚠️ OPPORTUNITY DETECTED: SELL signal at ${probability.toFixed(1)}%`);
                         log('signal', `⚠️ Opportunité SELL détectée! Probabilité: ${probability.toFixed(1)}%`);
