@@ -86,6 +86,9 @@ function App() {
       // 1. Settings (Theme, Symbol)
       const settings = await getUserSettings();
       setIsDarkMode(settings.theme === 'dark');
+      if (settings.strategy_mode) {
+        setStrategyMode(settings.strategy_mode);
+      }
       if (settings.last_symbol) {
         setSelectedSymbol(settings.last_symbol);
         setBotConfig(prev => ({ ...prev, symbol: settings.last_symbol }));
@@ -439,6 +442,7 @@ function App() {
           onBack={() => setView('trading')}
           onSave={(mode) => {
             setStrategyMode(mode);
+            updateUserSettings({ strategy_mode: mode });
             setView('trading');
           }}
         />

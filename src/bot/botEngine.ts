@@ -113,14 +113,28 @@ export class TradingBot {
             this.checkRiskManagement(currentPrice);
         }
 
-        // 4. Logic based on probability thresholds (55% / 48%)
+        // 4. Logic based on probability thresholds
         const probability = result.confidence;
         let signal: Signal = 'HOLD';
 
-        if (probability >= 55) {
-            signal = 'BUY';
-        } else if (probability <= 48) {
-            signal = 'SELL';
+        // MODE-SPECIFIC LOGIC
+        const mode = this.config.positionMode || 'SHORT'; // Default to SHORT (current behavior)
+
+        if (mode === 'LONG') {
+            // "LONG" Mode: More selective, targetting "gros gain" (+1%)
+            // We wait for a higher confidence (e.g., 65% instead of 55%)
+            if (probability >= 65) {
+                signal = 'BUY';
+            } else if (probability <= 45) {
+                signal = 'SELL';
+            }
+        } else {
+            // "SHORT" Mode: Standard frequent trading (current behavior)
+            if (probability >= 55) {
+                signal = 'BUY';
+            } else if (probability <= 48) {
+                signal = 'SELL';
+            }
         }
 
         this.state.lastSignal = signal;
@@ -130,8 +144,8 @@ export class TradingBot {
             // Open position if allowed
             this.executeTrade('BUY', results, currentPrice);
         } else if (signal === 'SELL' && this.state.currentPosition) {
-            // Close position if it exists (probability <= 48%)
-            this.closePosition('SELL', `Probability dropped to ${probability.toFixed(1)}%`, currentPrice);
+            // Close position if it exists
+            this.closePosition('SELL', `Signal Exit: Prob ${probability.toFixed(1)}% (${mode} mode)`, currentPrice);
         }
 
         return results;
@@ -191,7 +205,12 @@ export class TradingBot {
 
         if (signal === 'BUY') {
             const stopLoss = this.config.risk.stopLossPercent;
-            const takeProfit = this.config.risk.takeProfitPercent;
+            let takeProfit = this.config.risk.takeProfitPercent;
+
+            // "LONG" mode specific target as requested (+1%)
+            if (this.config.positionMode === 'LONG') {
+                takeProfit = 1.0;
+            }
 
             // Calculate actual crypto amount if random budget is enabled
             let finalTradeAmount = this.config.tradeAmount;

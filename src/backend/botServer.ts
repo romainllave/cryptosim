@@ -18,7 +18,9 @@ import {
     saveLog,
     getOpenPosition,
     savePosition,
-    deletePosition
+    deletePosition,
+    getUserSettings,
+    subscribeToUserSettings
 } from '../services/supabase';
 import type { DBPosition } from '../services/supabase';
 import type { BotCommand } from '../services/supabase';
@@ -85,6 +87,21 @@ async function main() {
 
     console.log('🤖 Bot initialized. Waiting for commands...');
     log('info', 'Bot Service initialized. Waiting for commands...');
+
+    // ========== SYNC STRATEGY MODE ==========
+    const initialSettings = await getUserSettings();
+    if (initialSettings.strategy_mode) {
+        bot.updateConfig({ positionMode: initialSettings.strategy_mode });
+        console.log(`🎯 Strategy Mode initialized to: ${initialSettings.strategy_mode}`);
+    }
+
+    const cleanupSettings = subscribeToUserSettings((settings) => {
+        if (settings.strategy_mode) {
+            bot.updateConfig({ positionMode: settings.strategy_mode });
+            console.log(`🎯 Strategy Mode updated to: ${settings.strategy_mode}`);
+            log('info', `Mode de stratégie changé en: ${settings.strategy_mode}`);
+        }
+    });
 
     // Storage for candles
     let candles: CandleData[] = [];
@@ -369,6 +386,7 @@ async function main() {
         log('error', '🛑 Shutting down...');
         if (cleanupBinance) cleanupBinance();
         if (heartbeatInterval) clearInterval(heartbeatInterval);
+        if (cleanupSettings) cleanupSettings();
         updateBotStatus('IDLE', currentSymbol).then(() => process.exit(0));
     });
 }

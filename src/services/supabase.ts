@@ -342,6 +342,7 @@ export function subscribeToBotStatus(callback: (status: { status: 'IDLE' | 'RUNN
 export interface UserSettings {
     theme: 'light' | 'dark';
     last_symbol: string;
+    strategy_mode?: 'LONG' | 'SHORT';
 }
 
 export async function getUserSettings(): Promise<UserSettings> {
@@ -355,7 +356,7 @@ export async function getUserSettings(): Promise<UserSettings> {
         if (error.code !== 'PGRST116') {
             // console.warn('Error loading user settings (using defaults):', error.message);
         }
-        return { theme: 'light', last_symbol: 'BTC' };
+        return { theme: 'light', last_symbol: 'BTC', strategy_mode: 'LONG' };
     }
     return data as UserSettings;
 }
@@ -372,6 +373,25 @@ export async function updateUserSettings(settings: Partial<UserSettings>): Promi
     if (error) {
         console.error('Error updating user settings:', error);
     }
+}
+
+export function subscribeToUserSettings(callback: (settings: UserSettings) => void) {
+    const channel = supabase
+        .channel('user-settings')
+        .on(
+            'postgres_changes',
+            { event: 'UPDATE', schema: 'public', table: 'user_settings' },
+            (payload) => {
+                if (payload.new) {
+                    callback(payload.new as UserSettings);
+                }
+            }
+        )
+        .subscribe();
+
+    return () => {
+        supabase.removeChannel(channel);
+    };
 }
 
 // Bot Logs

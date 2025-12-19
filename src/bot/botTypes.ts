@@ -39,6 +39,7 @@ export interface BotConfig {
     strategyName: string;
     randomAmountEnabled?: boolean;
     maxRandomAmount?: number;
+    positionMode?: 'LONG' | 'SHORT';
 }
 
 export interface BotState {
