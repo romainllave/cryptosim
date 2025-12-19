@@ -367,20 +367,21 @@ function App() {
       </header>
 
       {/* Main Content Grid */}
-      <div className="flex-1 flex overflow-hidden bg-gray-100 p-2 gap-2 dark:bg-[#131722]">
+      <div className="flex-1 flex overflow-hidden bg-gray-100 p-2 gap-2 dark:bg-[#131722] relative">
         {/* Left Sidebar */}
-        {!isFullScreen && (
-          <div className="w-64 flex-none bg-white rounded-xl border border-border overflow-hidden shadow-sm dark:bg-[#1e222d] dark:border-[#2a2e39]">
-            <CryptoList
-              cryptos={cryptos}
-              selectedSymbol={selectedSymbol}
-              onSelect={setSelectedSymbol}
-            />
-          </div>
-        )}
+        <div className={clsx(
+          "w-64 flex-none bg-white rounded-xl border border-border overflow-hidden shadow-sm dark:bg-[#1e222d] dark:border-[#2a2e39] transition-all duration-500 ease-in-out",
+          isFullScreen ? "-ml-72 opacity-0" : "ml-0 opacity-100"
+        )}>
+          <CryptoList
+            cryptos={cryptos}
+            selectedSymbol={selectedSymbol}
+            onSelect={setSelectedSymbol}
+          />
+        </div>
 
         {/* Center Area */}
-        <div className="flex-1 flex flex-col min-w-0 gap-2">
+        <div className="flex-1 flex flex-col min-w-0 gap-2 transition-all duration-500 ease-in-out">
           {/* Chart Section */}
           <div className="flex-1 relative border border-border bg-white rounded-xl overflow-hidden shadow-sm dark:bg-[#1e222d] dark:border-[#2a2e39]">
             <div className="absolute top-4 left-4 z-10 flex gap-2">
@@ -445,30 +446,32 @@ function App() {
           </div>
 
           {/* History Section */}
-          {!isFullScreen && (
-            <div className="h-1/3 min-h-[200px] bg-white rounded-xl border border-border overflow-hidden shadow-sm dark:bg-[#1e222d] dark:border-[#2a2e39]">
-              <TransactionHistory transactions={transactions} />
-            </div>
-          )}
+          <div className={clsx(
+            "bg-white rounded-xl border border-border overflow-hidden shadow-sm dark:bg-[#1e222d] dark:border-[#2a2e39] transition-all duration-500 ease-in-out overflow-y-hidden",
+            isFullScreen ? "h-0 opacity-0 mt-0" : "h-1/3 min-h-[200px] opacity-100 mt-0"
+          )}>
+            <TransactionHistory transactions={transactions} />
+          </div>
         </div>
 
         {/* Right Panel */}
-        {!isFullScreen && (
-          <div className="w-72 flex-none bg-white rounded-xl border border-border overflow-hidden shadow-sm dark:bg-[#1e222d] dark:border-[#2a2e39] flex flex-col">
-            <TradePanel
-              crypto={selectedCrypto}
-              balance={balance}
-              onTrade={handleTrade}
-            />
-            <BotPanel
-              botState={botState}
-              botConfig={botConfig}
-              onStart={handleBotStart}
-              onStop={handleBotStop}
-              onTradeAmountChange={handleBotTradeAmountChange}
-            />
-          </div>
-        )}
+        <div className={clsx(
+          "w-72 flex-none bg-white rounded-xl border border-border overflow-hidden shadow-sm dark:bg-[#1e222d] dark:border-[#2a2e39] flex flex-col transition-all duration-500 ease-in-out",
+          isFullScreen ? "-mr-80 opacity-0" : "mr-0 opacity-100"
+        )}>
+          <TradePanel
+            crypto={selectedCrypto}
+            balance={balance}
+            onTrade={handleTrade}
+          />
+          <BotPanel
+            botState={botState}
+            botConfig={botConfig}
+            onStart={handleBotStart}
+            onStop={handleBotStop}
+            onTradeAmountChange={handleBotTradeAmountChange}
+          />
+        </div>
       </div>
     </div>
   );

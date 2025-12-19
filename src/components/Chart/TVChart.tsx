@@ -76,16 +76,18 @@ export const TVChart: React.FC<TVChartProps> = ({ data, indicators, colors = {} 
             seriesRef.current = newSeries;
             smaSeriesRef.current = smaSeries;
 
-            const handleResize = () => {
-                if (chartContainerRef.current) {
-                    chart.applyOptions({ width: chartContainerRef.current.clientWidth });
+            // Use ResizeObserver for more robust resizing (handles sidebar toggles)
+            const resizeObserver = new ResizeObserver(entries => {
+                for (const entry of entries) {
+                    const { width, height } = entry.contentRect;
+                    chart.applyOptions({ width, height });
                 }
-            };
+            });
 
-            window.addEventListener('resize', handleResize);
+            resizeObserver.observe(chartContainerRef.current);
 
             return () => {
-                window.removeEventListener('resize', handleResize);
+                resizeObserver.disconnect();
                 chart.remove();
             };
         } catch (e) {
