@@ -435,6 +435,7 @@ function App() {
             <TVChart
               data={candleData}
               indicators={showSMA ? { sma: smaData } : undefined}
+              isFullScreen={isFullScreen}
               colors={{
                 backgroundColor: isDarkMode ? '#1e222d' : 'white',
                 textColor: isDarkMode ? '#d1d4dc' : 'black',

@@ -16,9 +16,10 @@ interface TVChartProps {
         areaTopColor?: string;
         areaBottomColor?: string;
     };
+    isFullScreen?: boolean;
 }
 
-export const TVChart: React.FC<TVChartProps> = ({ data, indicators, colors = {} }) => {
+export const TVChart: React.FC<TVChartProps> = ({ data, indicators, colors = {}, isFullScreen }) => {
     const chartContainerRef = useRef<HTMLDivElement>(null);
     const chartRef = useRef<IChartApi | null>(null);
     const seriesRef = useRef<ISeriesApi<"Candlestick", Time> | null>(null);
@@ -136,12 +137,25 @@ export const TVChart: React.FC<TVChartProps> = ({ data, indicators, colors = {} 
         if (smaSeriesRef.current) {
             if (indicators?.sma && indicators.sma.length > 0) {
                 smaSeriesRef.current.setData(indicators.sma.map(d => ({ ...d, time: d.time as Time })));
-                // Ensure visibility isn't hidden if we support toggling visibility separately, but here we likely reconstruct or just clear data
             } else {
                 smaSeriesRef.current.setData([]);
             }
         }
     }, [indicators]);
+
+    // Effect for FullScreen (Refit Chart)
+    useEffect(() => {
+        if (!chartRef.current) return;
+
+        // Delay to allow CSS transition to finish (500ms in App.tsx)
+        const timer = setTimeout(() => {
+            if (chartRef.current) {
+                chartRef.current.timeScale().fitContent();
+            }
+        }, 600); // Slightly longer than transition to be sure
+
+        return () => clearTimeout(timer);
+    }, [isFullScreen]);
 
     return (
         <div ref={chartContainerRef} className="w-full h-full" />
