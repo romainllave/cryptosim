@@ -12,7 +12,7 @@ export class TradingBot {
 
     constructor(config: Partial<BotConfig> = {}) {
         this.config = {
-            tradeAmount: 0.001,
+            tradeAmount: 0.1,
             symbol: 'BTC',
             enabled: false,
             risk: {
@@ -24,7 +24,7 @@ export class TradingBot {
             },
             strategyName: 'Custom Probability',
             randomAmountEnabled: true, // Enabled by default as per request
-            maxRandomAmount: 1500,
+            maxRandomAmount: 5000,
             ...config
         };
 
@@ -193,11 +193,18 @@ export class TradingBot {
             const stopLoss = this.config.risk.stopLossPercent;
             const takeProfit = this.config.risk.takeProfitPercent;
 
+            // Calculate actual crypto amount if random budget is enabled
+            let finalTradeAmount = this.config.tradeAmount;
+            if (this.config.randomAmountEnabled) {
+                const randomBudget = Math.random() * (this.config.maxRandomAmount || 1000);
+                finalTradeAmount = randomBudget / currentPrice;
+            }
+
             const position: Position = {
                 id: Math.random().toString(36).substring(7),
                 symbol: this.config.symbol,
                 type: 'BUY',
-                amount: this.config.tradeAmount,
+                amount: finalTradeAmount, // Use the actual calculated amount
                 entryPrice: currentPrice,
                 entryTime: new Date(),
                 stopLoss,
@@ -209,13 +216,6 @@ export class TradingBot {
             this.state.currentPosition = position;
             const agreeing = results.filter(r => r.signal === signal).map(r => r.strategy);
             const reason = `Strategy entry: ${agreeing.join(' + ')}`;
-
-            // Calculate actual crypto amount if random budget is enabled
-            let finalTradeAmount = this.config.tradeAmount;
-            if (this.config.randomAmountEnabled) {
-                const randomBudget = Math.random() * (this.config.maxRandomAmount || 1000);
-                finalTradeAmount = randomBudget / currentPrice;
-            }
 
             this.onTrade('BUY', finalTradeAmount, reason, position);
         } else if (signal === 'SELL') {

@@ -44,7 +44,7 @@ async function main() {
     // Initialize Bot
     const bot = new TradingBot({
         symbol: 'BTC',
-        tradeAmount: 0.001,
+        tradeAmount: 0.1,
         enabled: false,
         risk: {
             stopLossPercent: 1.5,
@@ -54,7 +54,7 @@ async function main() {
         },
         strategyName: 'Custom Probability',
         randomAmountEnabled: true,
-        maxRandomAmount: 1500
+        maxRandomAmount: 5000
     });
 
     // Helper for logging to DB + Console
