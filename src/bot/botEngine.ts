@@ -24,7 +24,7 @@ export class TradingBot {
             },
             strategyName: 'Custom Probability',
             randomAmountEnabled: true, // Enabled by default as per request
-            maxRandomAmount: 1000,
+            maxRandomAmount: 1500,
             ...config
         };
 

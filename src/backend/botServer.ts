@@ -54,7 +54,7 @@ async function main() {
         },
         strategyName: 'Custom Probability',
         randomAmountEnabled: true,
-        maxRandomAmount: 1000
+        maxRandomAmount: 1500
     });
 
     // Helper for logging to DB + Console
@@ -219,8 +219,6 @@ async function main() {
 
         // 1. Get Current Balance
         const currentBalance = await getBalance();
-        const maxTradeValue = currentBalance * 0.2; // Max 20% of balance per trade (Safety Rule)
-
         // 2. Risk Check & Position Sizing
         let totalValue = tradeAmount * price;
 
@@ -228,15 +226,9 @@ async function main() {
             // Check if we have enough funds
             if (totalValue > currentBalance) {
                 log('warning', `⚠️ Insufficient funds: ${totalValue.toFixed(2)} > ${currentBalance.toFixed(2)}`);
-                const safeValue = Math.min(currentBalance, maxTradeValue);
-                tradeAmount = safeValue / price;
+                tradeAmount = currentBalance / price;
                 totalValue = tradeAmount * price;
-                log('warning', `📉 Adjusted trade to safe limit: ${tradeAmount.toFixed(4)} ${bot.getConfig().symbol}`);
-            } else if (totalValue > maxTradeValue) {
-                log('warning', `⚠️ Trade exceeds risk limit (20%)`);
-                tradeAmount = maxTradeValue / price;
-                totalValue = tradeAmount * price;
-                log('warning', `📉 Adjusted trade to risk limit: ${tradeAmount.toFixed(4)} ${bot.getConfig().symbol}`);
+                log('warning', `📉 Adjusted trade to available balance: ${tradeAmount.toFixed(4)} ${bot.getConfig().symbol}`);
             }
         }
 
