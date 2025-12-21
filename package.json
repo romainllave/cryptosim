@@ -1,7 +1,7 @@
 {
   "name": "sitetrading",
   "private": true,
-  "version": "0.0.7",
+  "version": "0.0.8",
   "description": "Professional Crypto Trading Simulator",
   "author": "Romain Llave",
   "type": "module",
@@ -65,7 +65,6 @@
     "directories": {
       "output": "dist-electron"
     },
-    "icon": "build/icon.png",
     "publish": [
       {
         "provider": "github",
@@ -77,7 +76,6 @@
       "dist/**/*",
       "electron/**/*",
       "public/**/*",
-      "build/**/*",
       "package.json"
     ],
     "win": {
@@ -86,6 +84,11 @@
         "portable"
       ],
       "icon": "build/icon.png",
+      "shortcutName": "CryptoSim Pro"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
       "shortcutName": "CryptoSim Pro"
     }
   }
