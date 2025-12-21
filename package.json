@@ -9,7 +9,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "start": "npx serve -s dist -l ${PORT:-3000}",
+    "start": "npm run bot",
+    "start:web": "npx serve -s dist -l ${PORT:-3000}",
     "start:bot": "tsx src/backend/botServer.ts",
     "lint": "eslint .",
     "preview": "vite preview",
