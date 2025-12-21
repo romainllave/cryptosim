@@ -455,7 +455,7 @@ function App() {
           }}
         />
       ) : (
-        <div className="flex-1 flex flex-col md:flex-row min-h-0 overflow-y-visible md:overflow-hidden bg-gray-100 p-2 gap-2 dark:bg-[#131722] relative">
+        <div className="flex-1 flex flex-col md:flex-row min-h-0 overflow-y-visible md:overflow-hidden bg-gray-100 p-2 gap-2 dark:bg-[#131722] relative transition-all duration-500 ease-in-out">
           {/* Overlay for mobile menu */}
           {isMobileMenuOpen && (
             <div
@@ -466,9 +466,9 @@ function App() {
 
           {/* Left Sidebar */}
           <div className={clsx(
-            "fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-border transform transition-all duration-500 ease-in-out xl:relative xl:translate-x-0 xl:z-auto xl:flex xl:w-1/6 xl:min-w-[240px] xl:max-w-[300px] xl:flex-none xl:rounded-xl xl:border xl:shadow-sm dark:bg-[#1e222d] dark:border-[#2a2e39]",
+            "fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-border transform transition-all duration-500 ease-in-out xl:relative xl:translate-x-0 xl:z-auto xl:flex xl:w-1/6 xl:min-w-[240px] xl:max-w-[300px] xl:flex-none xl:rounded-xl xl:border xl:shadow-sm dark:bg-[#1e222d] dark:border-[#2a2e39] overflow-hidden",
             isMobileMenuOpen ? "translate-x-0" : "-translate-x-full",
-            isFullScreen && "xl:-ml-80 xl:opacity-0 xl:pointer-events-none"
+            isFullScreen && "xl:!w-0 xl:!min-w-0 xl:!max-w-0 xl:opacity-0 xl:pointer-events-none xl:!border-0"
           )}>
             <div className="flex flex-col h-full w-full">
               <div className="p-4 border-b border-border flex justify-between items-center xl:hidden">
@@ -560,8 +560,8 @@ function App() {
 
             {/* History Section */}
             <div className={clsx(
-              "bg-white rounded-xl border border-border overflow-hidden shadow-sm dark:bg-[#1e222d] dark:border-[#2a2e39] transition-all duration-500 ease-in-out overflow-y-hidden",
-              isFullScreen ? "h-0 opacity-0 mt-0" : "flex-none h-[300px] md:h-1/3 md:min-h-[200px] opacity-100 mt-0"
+              "bg-white rounded-xl border border-border overflow-hidden shadow-sm dark:bg-[#1e222d] dark:border-[#2a2e39] transition-all duration-500 ease-in-out",
+              isFullScreen ? "h-0 min-h-0 md:h-0 md:min-h-0 opacity-0 mt-0 p-0 border-0 flex-0" : "flex-none h-[300px] md:h-1/3 md:min-h-[200px] opacity-100 mt-0"
             )}>
               <TransactionHistory transactions={transactions} />
             </div>
@@ -571,7 +571,7 @@ function App() {
           <div className={clsx(
             "fixed inset-y-0 right-0 z-50 w-72 bg-white border-l border-border transform transition-all duration-500 ease-in-out md:relative md:translate-x-0 md:z-auto md:flex md:w-1/4 md:min-w-[280px] md:max-w-[400px] md:flex-none md:rounded-xl md:border md:shadow-sm dark:bg-[#1e222d] dark:border-[#2a2e39] overflow-hidden",
             isRightPanelOpen ? "translate-x-0" : "translate-x-full",
-            isFullScreen && "md:-mr-96 md:opacity-0 md:pointer-events-none"
+            isFullScreen && "md:!w-0 md:!min-w-0 md:!max-w-0 md:opacity-0 md:pointer-events-none md:!border-0"
           )}>
             <div className="flex flex-col h-full w-full overflow-y-auto custom-scrollbar">
               <div className="p-4 border-b border-border flex justify-between items-center md:hidden">
