@@ -29,16 +29,26 @@ function createWindow() {
     }
 }
 
-// Auto-updater events
-autoUpdater.on('update-available', () => {
+// Auto-updater diagnostic logs
+autoUpdater.on('checking-for-update', () => {
+    console.log('Auto-updater: Vérification des mises à jour...');
+});
+
+autoUpdater.on('update-available', (info) => {
+    console.log('Auto-updater: Mise à jour disponible ! Version:', info.version);
     dialog.showMessageBox({
         type: 'info',
         title: 'Mise à jour disponible',
-        message: 'Une nouvelle version est disponible. Elle sera téléchargée en arrière-plan.',
+        message: `Une nouvelle version (${info.version}) est disponible. Elle sera téléchargée en arrière-plan.`,
     });
 });
 
-autoUpdater.on('update-downloaded', () => {
+autoUpdater.on('update-not-available', (info) => {
+    console.log('Auto-updater: Aucune mise à jour disponible. Version actuelle:', info.version);
+});
+
+autoUpdater.on('update-downloaded', (info) => {
+    console.log('Auto-updater: Mise à jour téléchargée. Prête à être installée.');
     dialog.showMessageBox({
         type: 'info',
         title: 'Mise à jour prête',
@@ -52,8 +62,7 @@ autoUpdater.on('update-downloaded', () => {
 });
 
 autoUpdater.on('error', (err) => {
-    // Silent error in production to not annoy user, or log it
-    console.error('Auto-updater error:', err);
+    console.error('Auto-updater Erreur:', err);
 });
 
 app.whenReady().then(() => {
