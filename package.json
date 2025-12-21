@@ -20,6 +20,8 @@
     "electron:build": "npm run build && electron-builder"
   },
   "dependencies": {
+    "@capacitor/android": "^8.0.0",
+    "@capacitor/core": "^8.0.0",
     "@supabase/supabase-js": "^2.87.0",
     "clsx": "^2.1.1",
     "dotenv": "^17.2.3",
@@ -33,6 +35,7 @@
     "ws": "^8.18.3"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.0.0",
     "@eslint/js": "^9.39.1",
     "@types/node": "^24.10.1",
     "@types/react": "^19.2.5",

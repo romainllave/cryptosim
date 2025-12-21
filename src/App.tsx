@@ -466,9 +466,9 @@ function App() {
 
           {/* Left Sidebar */}
           <div className={clsx(
-            "fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-border transform transition-transform duration-300 ease-in-out xl:relative xl:translate-x-0 xl:z-auto xl:flex xl:w-1/6 xl:min-w-[240px] xl:max-w-[300px] xl:flex-none xl:rounded-xl xl:border xl:shadow-sm dark:bg-[#1e222d] dark:border-[#2a2e39]",
+            "fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-border transform transition-all duration-500 ease-in-out xl:relative xl:translate-x-0 xl:z-auto xl:flex xl:w-1/6 xl:min-w-[240px] xl:max-w-[300px] xl:flex-none xl:rounded-xl xl:border xl:shadow-sm dark:bg-[#1e222d] dark:border-[#2a2e39]",
             isMobileMenuOpen ? "translate-x-0" : "-translate-x-full",
-            isFullScreen && "xl:-ml-72 xl:opacity-0"
+            isFullScreen && "xl:-ml-80 xl:opacity-0 xl:pointer-events-none"
           )}>
             <div className="flex flex-col h-full w-full">
               <div className="p-4 border-b border-border flex justify-between items-center xl:hidden">
@@ -569,9 +569,9 @@ function App() {
 
           {/* Right Panel */}
           <div className={clsx(
-            "fixed inset-y-0 right-0 z-50 w-72 bg-white border-l border-border transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0 md:z-auto md:flex md:w-1/4 md:min-w-[280px] md:max-w-[400px] md:flex-none md:rounded-xl md:border md:shadow-sm dark:bg-[#1e222d] dark:border-[#2a2e39] overflow-hidden",
+            "fixed inset-y-0 right-0 z-50 w-72 bg-white border-l border-border transform transition-all duration-500 ease-in-out md:relative md:translate-x-0 md:z-auto md:flex md:w-1/4 md:min-w-[280px] md:max-w-[400px] md:flex-none md:rounded-xl md:border md:shadow-sm dark:bg-[#1e222d] dark:border-[#2a2e39] overflow-hidden",
             isRightPanelOpen ? "translate-x-0" : "translate-x-full",
-            isFullScreen && "md:-mr-80 md:opacity-0"
+            isFullScreen && "md:-mr-96 md:opacity-0 md:pointer-events-none"
           )}>
             <div className="flex flex-col h-full w-full overflow-y-auto custom-scrollbar">
               <div className="p-4 border-b border-border flex justify-between items-center md:hidden">

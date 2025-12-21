@@ -152,7 +152,7 @@ export const TVChart: React.FC<TVChartProps> = ({ data, indicators, colors = {},
             if (chartRef.current) {
                 chartRef.current.timeScale().fitContent();
             }
-        }, 600); // Slightly longer than transition to be sure
+        }, 550); // Matches synchronized 500ms transition + small buffer
 
         return () => clearTimeout(timer);
     }, [isFullScreen]);
