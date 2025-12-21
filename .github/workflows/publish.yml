@@ -24,6 +24,11 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Check files
+        run: |
+          ls public/icons
+          dir
+
       - name: Build and Publish
         run: npm run electron:build -- --publish always
         env:
