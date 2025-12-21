@@ -3,7 +3,19 @@ const path = require('path');
 const { autoUpdater } = require('electron-updater');
 const isDev = !app.isPackaged;
 
-Menu.setApplicationMenu(null);
+// Menu.setApplicationMenu(null); // Moved to whenReady
+
+// Global error handlers to prevent silent crashes
+process.on('uncaughtException', (error) => {
+    console.error('Uncaught Exception:', error);
+    if (app.isReady()) {
+        dialog.showErrorBox('Erreur Interne', `Une erreur inattendue est survenue : \n${error.message}`);
+    }
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});
 
 function createWindow() {
     const mainWindow = new BrowserWindow({
@@ -22,10 +34,16 @@ function createWindow() {
         mainWindow.loadURL('http://localhost:5173');
         // mainWindow.webContents.openDevTools();
     } else {
-        mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
+        mainWindow.loadFile(path.join(__dirname, '../dist/index.html')).catch(err => {
+            console.error('Failed to load index.html:', err);
+        });
 
-        // Check for updates only in production
-        autoUpdater.checkForUpdatesAndNotify();
+        // Check for updates with delay and error handling
+        setTimeout(() => {
+            autoUpdater.checkForUpdatesAndNotify().catch(err => {
+                console.error('Initial update check failed:', err);
+            });
+        }, 3000);
     }
 }
 
@@ -113,6 +131,7 @@ ipcMain.on('check-for-updates', () => {
 });
 
 app.whenReady().then(() => {
+    Menu.setApplicationMenu(null);
     createWindow();
 
     app.on('activate', function () {
