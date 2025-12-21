@@ -61,30 +61,36 @@ autoUpdater.on('update-downloaded', (info) => {
     });
 });
 
+autoUpdater.on('error', (err) => {
+    console.error('Auto-updater Erreur:', err);
+});
+
 const { ipcMain } = require('electron');
 
 // Manual update trigger via IPC
 ipcMain.on('check-for-updates', () => {
+    if (isDev) {
+        dialog.showMessageBox({
+            type: 'info',
+            title: 'Mise à jour (Mode Dev)',
+            message: 'La vérification des mises à jour est désactivée en mode développement.',
+        });
+        return;
+    }
+
     autoUpdater.checkForUpdatesAndNotify().then((result) => {
-        if (!result || !result.updateInfo) {
+        console.log('Manual check result:', result);
+        if (!result || !result.updateInfo || result.updateInfo.version === app.getVersion()) {
             dialog.showMessageBox({
                 type: 'info',
                 title: 'Mise à jour',
-                message: 'Votre application est déjà à jour !',
+                message: 'Votre application est déjà à jour (Version ' + app.getVersion() + ') !',
             });
         }
     }).catch((err) => {
-        dialog.showErrorBox('Erreur mise à jour', 'Impossible de vérifier les mises à jour : ' + err.message);
+        console.error('Manual check error:', err);
+        dialog.showErrorBox('Erreur mise à jour', 'Impossible de vérifier les mises à jour. \n\nDétail: ' + err.message);
     });
-});
-
-// Get version for UI
-ipcMain.handle('get-app-version', () => {
-    return app.getVersion();
-});
-
-autoUpdater.on('error', (err) => {
-    console.error('Auto-updater Erreur:', err);
 });
 
 app.whenReady().then(() => {

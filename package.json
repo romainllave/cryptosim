@@ -1,7 +1,7 @@
 {
   "name": "sitetrading",
   "private": true,
-  "version": "0.0.12",
+  "version": "0.0.13",
   "description": "Professional Crypto Trading Simulator",
   "author": "Romain Llave",
   "type": "module",
@@ -69,7 +69,8 @@
       {
         "provider": "github",
         "owner": "romainllave",
-        "repo": "cryptosim"
+        "repo": "cryptosim",
+        "releaseType": "release"
       }
     ],
     "files": [
