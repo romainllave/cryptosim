@@ -4,8 +4,9 @@ on:
   push:
     branches:
       - main
-    paths:
-      - 'package.json' # Only build when version/deps change or on demand
+
+permissions:
+  contents: write # Required for creating releases
 
 jobs:
   release:
