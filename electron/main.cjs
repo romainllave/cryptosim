@@ -65,7 +65,17 @@ const { ipcMain } = require('electron');
 
 // Manual update trigger via IPC
 ipcMain.on('check-for-updates', () => {
-    autoUpdater.checkForUpdatesAndNotify();
+    autoUpdater.checkForUpdatesAndNotify().then((result) => {
+        if (!result || !result.updateInfo) {
+            dialog.showMessageBox({
+                type: 'info',
+                title: 'Mise à jour',
+                message: 'Votre application est déjà à jour !',
+            });
+        }
+    }).catch((err) => {
+        dialog.showErrorBox('Erreur mise à jour', 'Impossible de vérifier les mises à jour : ' + err.message);
+    });
 });
 
 // Get version for UI
