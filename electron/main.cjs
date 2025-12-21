@@ -32,32 +32,50 @@ function createWindow() {
 // Auto-updater diagnostic logs
 autoUpdater.on('checking-for-update', () => {
     console.log('Auto-updater: Vérification des mises à jour...');
+    BrowserWindow.getAllWindows().forEach(win => {
+        win.webContents.send('update-status', { status: 'checking', message: 'Vérification des mises à jour...' });
+    });
 });
 
 autoUpdater.on('update-available', (info) => {
     console.log('Auto-updater: Mise à jour disponible ! Version:', info.version);
-    dialog.showMessageBox({
-        type: 'info',
-        title: 'Mise à jour disponible',
-        message: `Une nouvelle version (${info.version}) est disponible. Elle sera téléchargée en arrière-plan.`,
+    BrowserWindow.getAllWindows().forEach(win => {
+        win.webContents.send('update-status', { status: 'available', message: 'Mise à jour disponible ! Téléchargement...', version: info.version });
     });
 });
 
 autoUpdater.on('update-not-available', (info) => {
     console.log('Auto-updater: Aucune mise à jour disponible. Version actuelle:', info.version);
+    BrowserWindow.getAllWindows().forEach(win => {
+        win.webContents.send('update-status', { status: 'not-available', message: 'Application à jour' });
+    });
+});
+
+autoUpdater.on('download-progress', (progressObj) => {
+    BrowserWindow.getAllWindows().forEach(win => {
+        win.webContents.send('update-status', {
+            status: 'downloading',
+            message: 'Téléchargement de la mise à jour...',
+            percent: progressObj.percent
+        });
+    });
 });
 
 autoUpdater.on('update-downloaded', (info) => {
     console.log('Auto-updater: Mise à jour téléchargée. Prête à être installée.');
-    dialog.showMessageBox({
-        type: 'info',
-        title: 'Mise à jour prête',
-        message: 'La mise à jour a été téléchargée. L\'application va redémarrer pour l\'installer.',
-        buttons: ['Redémarrer']
-    }).then((result) => {
-        if (result.response === 0) {
-            autoUpdater.quitAndInstall();
-        }
+    BrowserWindow.getAllWindows().forEach(win => {
+        win.webContents.send('update-status', { status: 'ready', message: 'Mise à jour prête. Redémarrage...' });
+    });
+    // Auto install after a short delay to let UI show the message
+    setTimeout(() => {
+        autoUpdater.quitAndInstall();
+    }, 2000);
+});
+
+autoUpdater.on('error', (err) => {
+    console.error('Auto-updater Erreur:', err);
+    BrowserWindow.getAllWindows().forEach(win => {
+        win.webContents.send('update-status', { status: 'error', message: 'Erreur lors de la mise à jour' });
     });
 });
 

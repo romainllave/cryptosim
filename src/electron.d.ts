@@ -5,6 +5,7 @@ declare global {
         electron: {
             getVersion: () => Promise<string>;
             checkUpdates: () => void;
+            onUpdateStatus: (callback: (data: any) => void) => void;
         };
     }
 }

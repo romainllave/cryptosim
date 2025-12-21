@@ -31,7 +31,10 @@ import {
 } from './services/supabase';
 import type { BotTrade } from './services/supabase';
 
+import { SplashScreen } from './components/Splash/SplashScreen';
+
 function App() {
+  const [showSplash, setShowSplash] = useState(true);
   const [selectedSymbol, setSelectedSymbol] = useState<string>('BTC');
   const [cryptos, setCryptos] = useState<Crypto[]>(MOCK_CRYPTOS);
   const [candleData, setCandleData] = useState<CandleData[]>([]);
@@ -360,6 +363,10 @@ function App() {
   const handleBotTradeAmountChange = (amount: number) => {
     setBotConfig(prev => ({ ...prev, tradeAmount: amount }));
   };
+
+  if (showSplash) {
+    return <SplashScreen onFinished={() => setShowSplash(false)} />;
+  }
 
   return (
     <div className="flex flex-col h-screen bg-background text-text-primary overflow-y-auto md:overflow-hidden font-sans dark:bg-[#131722] dark:text-[#d1d4dc]">
