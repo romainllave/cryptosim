@@ -79,11 +79,12 @@ autoUpdater.on('error', (err) => {
     });
 });
 
-autoUpdater.on('error', (err) => {
-    console.error('Auto-updater Erreur:', err);
-});
-
 const { ipcMain } = require('electron');
+
+// Get App Version
+ipcMain.handle('get-app-version', () => {
+    return app.getVersion();
+});
 
 // Manual update trigger via IPC
 ipcMain.on('check-for-updates', () => {
