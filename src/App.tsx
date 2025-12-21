@@ -10,7 +10,7 @@ import { StrategyPage } from './components/Strategy/StrategyPage';
 import type { Crypto, Transaction } from './types';
 import { MOCK_CRYPTOS } from './types';
 import type { CandleData } from './utils/chartData';
-import { Activity, Moon, Sun, Maximize2, Minimize2, Settings } from 'lucide-react';
+import { Activity, Moon, Sun, Maximize2, Minimize2, Settings, Menu, X } from 'lucide-react';
 import { clsx } from 'clsx';
 import { fetchKlines, subscribeToTickers, subscribeToKline } from './services/binance';
 // import { loadBalance, saveBalance, loadTransactions, saveTransactions } from './services/storage'; // Deprecated
@@ -45,6 +45,8 @@ function App() {
   const [view, setView] = useState<'trading' | 'holdings' | 'strategy'>('trading');
   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
   const [strategyMode, setStrategyMode] = useState<'LONG' | 'SHORT'>('LONG');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
+  const [isRightPanelOpen, setIsRightPanelOpen] = useState<boolean>(false);
   const settingsRef = useRef<HTMLDivElement>(null);
 
   // Bot state (Synced with Supabase)
@@ -360,7 +362,7 @@ function App() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-background text-text-primary overflow-hidden font-sans dark:bg-[#131722] dark:text-[#d1d4dc]">
+    <div className="flex flex-col h-screen bg-background text-text-primary overflow-y-auto md:overflow-hidden font-sans dark:bg-[#131722] dark:text-[#d1d4dc]">
       {/* Header */}
       <header className="h-14 border-b border-border flex items-center px-4 justify-between bg-white shrink-0 dark:bg-[#1e222d] dark:border-[#2a2e39]">
         <div className="flex items-center gap-2">
@@ -381,14 +383,14 @@ function App() {
           </button>
         </div>
 
-        <div className="flex items-center gap-6 text-sm">
+        <div className="flex items-center gap-2 sm:gap-6 text-sm">
           <button
             onClick={() => setIsDarkMode(!isDarkMode)}
             className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-[#2a2e39] transition-colors"
           >
             {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
           </button>
-          <div className="flex gap-4">
+          <div className="hidden lg:flex gap-4">
             {['BTC', 'ETH', 'SOL'].map(s => {
               const c = cryptos.find(c => c.symbol === s);
               return (
@@ -402,7 +404,7 @@ function App() {
               )
             })}
           </div>
-          <div className="font-medium">
+          <div className="hidden sm:block font-medium">
             Balance: <span className="font-bold text-blue-600">{balance.toFixed(2)} USDT</span>
           </div>
           <div className="relative" ref={settingsRef}>
@@ -423,9 +425,15 @@ function App() {
               }}
             />
           </div>
-          <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-xs font-bold text-white">
+          <div className="w-8 h-8 bg-blue-600 rounded-full hidden sm:flex items-center justify-center text-xs font-bold text-white">
             RL
           </div>
+          <button
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className="p-2 xl:hidden rounded-lg hover:bg-gray-100 dark:hover:bg-[#2a2e39] transition-colors"
+          >
+            {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+          </button>
         </div>
       </header>
 
@@ -447,23 +455,41 @@ function App() {
           }}
         />
       ) : (
-        <div className="flex-1 flex overflow-hidden bg-gray-100 p-2 gap-2 dark:bg-[#131722] relative">
+        <div className="flex-1 flex flex-col md:flex-row min-h-0 overflow-y-visible md:overflow-hidden bg-gray-100 p-2 gap-2 dark:bg-[#131722] relative">
+          {/* Overlay for mobile menu */}
+          {isMobileMenuOpen && (
+            <div
+              className="fixed inset-0 bg-black/50 z-40 xl:hidden"
+              onClick={() => setIsMobileMenuOpen(false)}
+            />
+          )}
+
           {/* Left Sidebar */}
           <div className={clsx(
-            "w-64 flex-none bg-white rounded-xl border border-border overflow-hidden shadow-sm dark:bg-[#1e222d] dark:border-[#2a2e39] transition-all duration-500 ease-in-out",
-            isFullScreen ? "-ml-72 opacity-0" : "ml-0 opacity-100"
+            "fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-border transform transition-transform duration-300 ease-in-out xl:relative xl:translate-x-0 xl:z-auto xl:flex xl:w-1/6 xl:min-w-[240px] xl:max-w-[300px] xl:flex-none xl:rounded-xl xl:border xl:shadow-sm dark:bg-[#1e222d] dark:border-[#2a2e39]",
+            isMobileMenuOpen ? "translate-x-0" : "-translate-x-full",
+            isFullScreen && "xl:-ml-72 xl:opacity-0"
           )}>
-            <CryptoList
-              cryptos={cryptos}
-              selectedSymbol={selectedSymbol}
-              onSelect={setSelectedSymbol}
-            />
+            <div className="flex flex-col h-full w-full">
+              <div className="p-4 border-b border-border flex justify-between items-center xl:hidden">
+                <span className="font-bold">Marchés</span>
+                <button onClick={() => setIsMobileMenuOpen(false)}><X size={20} /></button>
+              </div>
+              <CryptoList
+                cryptos={cryptos}
+                selectedSymbol={selectedSymbol}
+                onSelect={(s) => {
+                  setSelectedSymbol(s);
+                  setIsMobileMenuOpen(false);
+                }}
+              />
+            </div>
           </div>
 
           {/* Center Area */}
-          <div className="flex-1 flex flex-col min-w-0 gap-2 transition-all duration-500 ease-in-out">
+          <div className="flex-1 flex flex-col min-w-0 min-h-0 gap-2 transition-all duration-500 ease-in-out">
             {/* Chart Section */}
-            <div className="flex-1 relative border border-border bg-white rounded-xl overflow-hidden shadow-sm dark:bg-[#1e222d] dark:border-[#2a2e39]">
+            <div className="flex-none h-[400px] md:flex-1 relative border border-border bg-white rounded-xl overflow-hidden shadow-sm dark:bg-[#1e222d] dark:border-[#2a2e39]">
               <div className="absolute top-4 left-4 z-10 flex gap-2">
                 <span className="font-bold text-xl">{selectedSymbol}USDT</span>
                 <span className="text-sm text-text-secondary mt-1 dark:text-[#787b86]">CryptoSim Pro</span>
@@ -506,10 +532,16 @@ function App() {
 
                 <button
                   onClick={() => setIsFullScreen(!isFullScreen)}
-                  className="ml-auto p-1.5 rounded-lg hover:bg-gray-100 text-text-secondary dark:hover:bg-[#2a2e39] dark:text-[#787b86] transition-colors"
+                  className="hidden sm:block ml-auto p-1.5 rounded-lg hover:bg-gray-100 text-text-secondary dark:hover:bg-[#2a2e39] dark:text-[#787b86] transition-colors"
                   title={isFullScreen ? "Sortir du plein écran" : "Plein écran"}
                 >
                   {isFullScreen ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+                </button>
+                <button
+                  onClick={() => setIsRightPanelOpen(!isRightPanelOpen)}
+                  className="md:hidden ml-auto p-1.5 rounded-lg bg-blue-600 text-white shadow-lg"
+                >
+                  <Activity size={18} />
                 </button>
               </div>
               <TVChart
@@ -529,7 +561,7 @@ function App() {
             {/* History Section */}
             <div className={clsx(
               "bg-white rounded-xl border border-border overflow-hidden shadow-sm dark:bg-[#1e222d] dark:border-[#2a2e39] transition-all duration-500 ease-in-out overflow-y-hidden",
-              isFullScreen ? "h-0 opacity-0 mt-0" : "h-1/3 min-h-[200px] opacity-100 mt-0"
+              isFullScreen ? "h-0 opacity-0 mt-0" : "flex-none h-[300px] md:h-1/3 md:min-h-[200px] opacity-100 mt-0"
             )}>
               <TransactionHistory transactions={transactions} />
             </div>
@@ -537,22 +569,32 @@ function App() {
 
           {/* Right Panel */}
           <div className={clsx(
-            "w-72 flex-none bg-white rounded-xl border border-border flex flex-col transition-all duration-500 ease-in-out overflow-y-auto custom-scrollbar dark:bg-[#1e222d] dark:border-[#2a2e39] shadow-sm",
-            isFullScreen ? "-mr-80 opacity-0" : "mr-0 opacity-100"
+            "fixed inset-y-0 right-0 z-50 w-72 bg-white border-l border-border transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0 md:z-auto md:flex md:w-1/4 md:min-w-[280px] md:max-w-[400px] md:flex-none md:rounded-xl md:border md:shadow-sm dark:bg-[#1e222d] dark:border-[#2a2e39] overflow-hidden",
+            isRightPanelOpen ? "translate-x-0" : "translate-x-full",
+            isFullScreen && "md:-mr-80 md:opacity-0"
           )}>
-            <TradePanel
-              crypto={selectedCrypto}
-              balance={balance}
-              ownedAmount={holdings[selectedSymbol] || 0}
-              onTrade={handleTrade}
-            />
-            <BotPanel
-              botState={botState}
-              botConfig={botConfig}
-              onStart={handleBotStart}
-              onStop={handleBotStop}
-              onTradeAmountChange={handleBotTradeAmountChange}
-            />
+            <div className="flex flex-col h-full w-full overflow-y-auto custom-scrollbar">
+              <div className="p-4 border-b border-border flex justify-between items-center md:hidden">
+                <span className="font-bold">Trading & Bot</span>
+                <button onClick={() => setIsRightPanelOpen(false)}><X size={20} /></button>
+              </div>
+              <TradePanel
+                crypto={selectedCrypto}
+                balance={balance}
+                ownedAmount={holdings[selectedSymbol] || 0}
+                onTrade={(type, amount) => {
+                  handleTrade(type, amount);
+                  if (window.innerWidth < 768) setIsRightPanelOpen(false);
+                }}
+              />
+              <BotPanel
+                botState={botState}
+                botConfig={botConfig}
+                onStart={handleBotStart}
+                onStop={handleBotStop}
+                onTradeAmountChange={handleBotTradeAmountChange}
+              />
+            </div>
           </div>
         </div>
       )}
