@@ -10,7 +10,8 @@ import {
     FileText,
     LogOut,
     ChevronRight,
-    Wallet
+    Wallet,
+    RefreshCw
 } from 'lucide-react';
 
 
@@ -29,6 +30,20 @@ export const SettingsDropdown: React.FC<SettingsDropdownProps> = ({
     balance,
     onNavigate
 }) => {
+    const [version, setVersion] = React.useState<string>('0.0.1');
+
+    React.useEffect(() => {
+        if (window.electron && window.electron.getVersion) {
+            window.electron.getVersion().then(setVersion);
+        }
+    }, [isOpen]);
+
+    const handleCheckUpdates = () => {
+        if (window.electron && window.electron.checkUpdates) {
+            window.electron.checkUpdates();
+        }
+    };
+
     if (!isOpen) return null;
 
     return (
@@ -141,6 +156,19 @@ export const SettingsDropdown: React.FC<SettingsDropdownProps> = ({
                     <LogOut size={16} />
                     <span className="font-bold">Déconnexion</span>
                 </button>
+
+                <div className="p-4 bg-gray-50/50 dark:bg-[#131722]/50 border-t border-border dark:border-[#2a2e39]">
+                    <div className="flex justify-between items-center text-[10px] text-text-secondary dark:text-[#787b86]">
+                        <span className="font-medium">Version {version}</span>
+                        <button
+                            onClick={handleCheckUpdates}
+                            className="flex items-center gap-1 hover:text-blue-500 transition-colors bg-white dark:bg-[#1e222d] px-2 py-1 rounded border border-border dark:border-[#2a2e39]"
+                        >
+                            <RefreshCw size={10} />
+                            <span>Chercher une MAJ</span>
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     );

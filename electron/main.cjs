@@ -61,6 +61,18 @@ autoUpdater.on('update-downloaded', (info) => {
     });
 });
 
+const { ipcMain } = require('electron');
+
+// Manual update trigger via IPC
+ipcMain.on('check-for-updates', () => {
+    autoUpdater.checkForUpdatesAndNotify();
+});
+
+// Get version for UI
+ipcMain.handle('get-app-version', () => {
+    return app.getVersion();
+});
+
 autoUpdater.on('error', (err) => {
     console.error('Auto-updater Erreur:', err);
 });

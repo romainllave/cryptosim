@@ -1,5 +1,6 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('electron', {
-    // Add any IPC bridges here if needed
+    getVersion: () => ipcRenderer.invoke('get-app-version'),
+    checkUpdates: () => ipcRenderer.send('check-for-updates'),
 });
