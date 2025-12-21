@@ -1,23 +1,44 @@
-const { app, BrowserWindow, Menu, dialog } = require('electron');
+const { app, BrowserWindow, Menu, dialog, ipcMain } = require('electron');
 const path = require('path');
+const fs = require('fs');
 const { autoUpdater } = require('electron-updater');
+
+// --- STABILITY: Disable Hardware Acceleration ---
+// This is a known fix for "memory could not be read" errors on many PC configurations.
+app.disableHardwareAcceleration();
+
 const isDev = !app.isPackaged;
 
-// Menu.setApplicationMenu(null); // Moved to whenReady
+// --- DIAGNOSTICS: Simple Log System ---
+const logPath = path.join(app.getPath('userData'), 'app.log');
+function log(message) {
+    const timestamp = new Date().toISOString();
+    const formattedMessage = `[${timestamp}] ${message}\n`;
+    console.log(message);
+    try {
+        fs.appendFileSync(logPath, formattedMessage);
+    } catch (e) {
+        // Ignore logging errors
+    }
+}
+
+log(`Démarrage de l'application (Version ${app.getVersion()})`);
+log(`UserData Path: ${app.getPath('userData')}`);
 
 // Global error handlers to prevent silent crashes
 process.on('uncaughtException', (error) => {
-    console.error('Uncaught Exception:', error);
+    log(`CRITICAL ERROR: ${error.message}\n${error.stack}`);
     if (app.isReady()) {
-        dialog.showErrorBox('Erreur Interne', `Une erreur inattendue est survenue : \n${error.message}`);
+        dialog.showErrorBox('Erreur Interne', `Une erreur inattendue est survenue : \n${error.message}\n\nConsultez app.log dans ${app.getPath('userData')}`);
     }
 });
 
 process.on('unhandledRejection', (reason, promise) => {
-    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+    log(`UNHANDLED REJECTION: ${reason}`);
 });
 
 function createWindow() {
+    log('Création de la fenêtre principale...');
     const mainWindow = new BrowserWindow({
         width: 1280,
         height: 800,
@@ -25,45 +46,48 @@ function createWindow() {
             nodeIntegration: false,
             contextIsolation: true,
             preload: path.join(__dirname, 'preload.cjs'),
+            sandbox: false, // Sometimes sandbox causes issues with file loading on Windows
         },
         backgroundColor: '#131722',
         icon: path.join(__dirname, '../public/icons/icon.png'),
     });
 
     if (isDev) {
-        mainWindow.loadURL('http://localhost:5173');
-        // mainWindow.webContents.openDevTools();
+        mainWindow.loadURL('http://localhost:5173').catch(err => log(`URL load error: ${err}`));
     } else {
-        mainWindow.loadFile(path.join(__dirname, '../dist/index.html')).catch(err => {
-            console.error('Failed to load index.html:', err);
+        const indexPath = path.join(__dirname, '../dist/index.html');
+        log(`Loading production file: ${indexPath}`);
+        mainWindow.loadFile(indexPath).catch(err => {
+            log(`File load error: ${err}`);
+            dialog.showErrorBox('Erreur de chargement', `Impossible de charger l'interface : ${err.message}`);
         });
 
-        // Check for updates with delay and error handling
+        // --- STABILITY: Optional/Delayed Update Check ---
+        // We delay it significantly to ensure the app is fully loaded.
         setTimeout(() => {
-            autoUpdater.checkForUpdatesAndNotify().catch(err => {
-                console.error('Initial update check failed:', err);
-            });
-        }, 3000);
+            log('Tentative de vérification des mises à jour automatique...');
+            autoUpdater.checkForUpdatesAndNotify().catch(err => log(`Auto-update check failed: ${err}`));
+        }, 10000);
     }
 }
 
 // Auto-updater diagnostic logs
 autoUpdater.on('checking-for-update', () => {
-    console.log('Auto-updater: Vérification des mises à jour...');
+    log('Auto-updater: Vérification des mises à jour...');
     BrowserWindow.getAllWindows().forEach(win => {
         win.webContents.send('update-status', { status: 'checking', message: 'Vérification des mises à jour...' });
     });
 });
 
 autoUpdater.on('update-available', (info) => {
-    console.log('Auto-updater: Mise à jour disponible ! Version:', info.version);
+    log(`Auto-updater: Mise à jour disponible ! Version: ${info.version}`);
     BrowserWindow.getAllWindows().forEach(win => {
         win.webContents.send('update-status', { status: 'available', message: 'Mise à jour disponible ! Téléchargement...', version: info.version });
     });
 });
 
 autoUpdater.on('update-not-available', (info) => {
-    console.log('Auto-updater: Aucune mise à jour disponible. Version actuelle:', info.version);
+    log(`Auto-updater: Aucune mise à jour disponible. Version: ${info.version}`);
     BrowserWindow.getAllWindows().forEach(win => {
         win.webContents.send('update-status', { status: 'not-available', message: 'Application à jour' });
     });
@@ -80,24 +104,22 @@ autoUpdater.on('download-progress', (progressObj) => {
 });
 
 autoUpdater.on('update-downloaded', (info) => {
-    console.log('Auto-updater: Mise à jour téléchargée. Prête à être installée.');
+    log('Auto-updater: Mise à jour téléchargée.');
     BrowserWindow.getAllWindows().forEach(win => {
         win.webContents.send('update-status', { status: 'ready', message: 'Mise à jour prête. Redémarrage...' });
     });
-    // Auto install after a short delay to let UI show the message
     setTimeout(() => {
+        log('Application de la mise à jour (quitAndInstall)...');
         autoUpdater.quitAndInstall();
     }, 2000);
 });
 
 autoUpdater.on('error', (err) => {
-    console.error('Auto-updater Erreur:', err);
+    log(`Auto-updater Error: ${err}`);
     BrowserWindow.getAllWindows().forEach(win => {
         win.webContents.send('update-status', { status: 'error', message: 'Erreur lors de la mise à jour' });
     });
 });
-
-const { ipcMain } = require('electron');
 
 // Get App Version
 ipcMain.handle('get-app-version', () => {
@@ -106,6 +128,7 @@ ipcMain.handle('get-app-version', () => {
 
 // Manual update trigger via IPC
 ipcMain.on('check-for-updates', () => {
+    log('Manual update check requested.');
     if (isDev) {
         dialog.showMessageBox({
             type: 'info',
@@ -116,7 +139,6 @@ ipcMain.on('check-for-updates', () => {
     }
 
     autoUpdater.checkForUpdatesAndNotify().then((result) => {
-        console.log('Manual check result:', result);
         if (!result || !result.updateInfo || result.updateInfo.version === app.getVersion()) {
             dialog.showMessageBox({
                 type: 'info',
@@ -125,12 +147,13 @@ ipcMain.on('check-for-updates', () => {
             });
         }
     }).catch((err) => {
-        console.error('Manual check error:', err);
+        log(`Manual check error: ${err}`);
         dialog.showErrorBox('Erreur mise à jour', 'Impossible de vérifier les mises à jour. \n\nDétail: ' + err.message);
     });
 });
 
 app.whenReady().then(() => {
+    log('App ready. Setting menu and creating window.');
     Menu.setApplicationMenu(null);
     createWindow();
 
@@ -140,5 +163,6 @@ app.whenReady().then(() => {
 });
 
 app.on('window-all-closed', function () {
+    log('Toutes les fenêtres sont fermées.');
     if (process.platform !== 'darwin') app.quit();
 });
