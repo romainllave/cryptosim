@@ -6,7 +6,7 @@ interface SplashScreenProps {
     onFinished: () => void;
 }
 
-type AnimStage = 'loading' | 'exploding' | 'connecting' | 'finished';
+type AnimStage = 'loading' | 'connecting-corners' | 'forming-frame' | 'revealing' | 'finished';
 
 export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinished }) => {
     const [status, setStatus] = useState<{
@@ -26,21 +26,24 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinished }) => {
     }, []);
 
     const triggerAnimation = async () => {
-        // Stage 1: Beams shoot to corners
-        setAnimStage('exploding');
-        await new Promise(r => setTimeout(r, 800));
+        // Stage 1: Beams connect center to corners
+        setAnimStage('connecting-corners');
+        await new Promise(r => setTimeout(r, 900));
 
-        // Stage 2: Frame draws
-        setAnimStage('connecting');
+        // Stage 2: Rectangle frame forms
+        setAnimStage('forming-frame');
         await new Promise(r => setTimeout(r, 1000));
 
-        // Reveal app
+        // Stage 3: Reveal the app
+        setAnimStage('revealing');
+
         if (window.electron?.expandWindow) {
             window.electron.expandWindow();
         }
 
+        await new Promise(r => setTimeout(r, 200));
         setAnimStage('finished');
-        setTimeout(onFinished, 100);
+        onFinished();
     };
 
     useEffect(() => {
@@ -86,11 +89,33 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinished }) => {
     const progress = status.percent ?? (status.status === 'checking' ? 30 : 100);
     const strokeDashoffset = circumference - (progress / 100) * circumference;
 
+    const showDiagonals = animStage === 'connecting-corners' || animStage === 'forming-frame';
+    const showFrame = animStage === 'forming-frame' || animStage === 'revealing';
+    const hideCircle = animStage !== 'loading';
+
     return (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-transparent select-none overflow-hidden">
 
-            {/* Frame (Perimeter) */}
-            {animStage === 'connecting' && (
+            {/* Diagonal Beams (Center to Corners) */}
+            {showDiagonals && (
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    {/* TL */}
+                    <div className="absolute w-[755px] h-1.5 bg-blue-500 origin-left animate-gpu-beam neon-pro-fast rounded-full"
+                        style={{ rotate: '-148deg' }} />
+                    {/* TR */}
+                    <div className="absolute w-[755px] h-1.5 bg-blue-500 origin-left animate-gpu-beam neon-pro-fast rounded-full"
+                        style={{ rotate: '-32deg' }} />
+                    {/* BL */}
+                    <div className="absolute w-[755px] h-1.5 bg-blue-500 origin-left animate-gpu-beam neon-pro-fast rounded-full"
+                        style={{ rotate: '148deg' }} />
+                    {/* BR */}
+                    <div className="absolute w-[755px] h-1.5 bg-blue-500 origin-left animate-gpu-beam neon-pro-fast rounded-full"
+                        style={{ rotate: '32deg' }} />
+                </div>
+            )}
+
+            {/* Rectangle Frame (Perimeter) */}
+            {showFrame && (
                 <div className="absolute inset-0 flex items-center justify-center">
                     <div className="relative w-[1280px] h-[800px]">
                         <div className="absolute top-0 left-0 right-0 h-2 bg-blue-500 origin-left animate-gpu-h neon-pro-fast rounded-full" />
@@ -101,51 +126,40 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinished }) => {
                 </div>
             )}
 
-            {/* Diagonal Beams */}
-            {(animStage === 'exploding' || animStage === 'connecting') && (
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    {/* TL */}
-                    <div className="absolute w-[755px] h-1.5 bg-blue-500 origin-left animate-gpu-beam neon-pro-fast rounded-full"
-                        style={{ transform: 'rotate(-148deg) scaleX(0)' }} />
-                    {/* TR */}
-                    <div className="absolute w-[755px] h-1.5 bg-blue-500 origin-left animate-gpu-beam neon-pro-fast rounded-full"
-                        style={{ transform: 'rotate(-32deg) scaleX(0)' }} />
-                    {/* BL */}
-                    <div className="absolute w-[755px] h-1.5 bg-blue-500 origin-left animate-gpu-beam neon-pro-fast rounded-full"
-                        style={{ transform: 'rotate(148deg) scaleX(0)' }} />
-                    {/* BR */}
-                    <div className="absolute w-[755px] h-1.5 bg-blue-500 origin-left animate-gpu-beam neon-pro-fast rounded-full"
-                        style={{ transform: 'rotate(32deg) scaleX(0)' }} />
-                </div>
-            )}
-
-            {/* Central Circle */}
+            {/* Central Circle (Loading) */}
             <div className={clsx(
-                "relative w-[450px] h-[450px] flex items-center justify-center",
-                animStage === 'exploding' && "animate-gpu-shrink",
-                (animStage === 'connecting' || animStage === 'finished') && "opacity-0 pointer-events-none"
+                "relative w-[450px] h-[450px] flex items-center justify-center transition-all duration-500",
+                hideCircle && "animate-gpu-shrink pointer-events-none"
             )}>
 
                 <div className="absolute inset-0 rounded-full" style={{ WebkitAppRegion: 'drag' } as any} />
-                <div className="absolute inset-4 rounded-full bg-[#0b0e14] border-2 border-blue-500/20 shadow-[0_0_60px_rgba(0,0,0,0.9)]" />
+                <div className={clsx(
+                    "absolute inset-4 rounded-full bg-[#0b0e14] border-2 border-blue-500/20 shadow-[0_0_60px_rgba(0,0,0,0.9)] transition-opacity duration-300",
+                    hideCircle && "opacity-0"
+                )} />
 
-                <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 450 450">
-                    <circle cx="225" cy="225" r={radius} fill="none" stroke="rgba(30,41,59,0.5)" strokeWidth="10" />
-                    <circle
-                        cx="225" cy="225" r={radius} fill="none"
-                        stroke="url(#splash-grad)" strokeWidth="12"
-                        strokeDasharray={circumference}
-                        style={{ strokeDashoffset, transition: 'stroke-dashoffset 0.8s ease', strokeLinecap: 'round' }}
-                    />
-                    <defs>
-                        <linearGradient id="splash-grad" x1="0%" y1="0%" x2="100%" y2="0%">
-                            <stop offset="0%" stopColor="#2563eb" />
-                            <stop offset="100%" stopColor="#3b82f6" />
-                        </linearGradient>
-                    </defs>
-                </svg>
+                {!hideCircle && (
+                    <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 450 450">
+                        <circle cx="225" cy="225" r={radius} fill="none" stroke="rgba(30,41,59,0.5)" strokeWidth="10" />
+                        <circle
+                            cx="225" cy="225" r={radius} fill="none"
+                            stroke="url(#splash-grad)" strokeWidth="12"
+                            strokeDasharray={circumference}
+                            style={{ strokeDashoffset, transition: 'stroke-dashoffset 0.8s ease', strokeLinecap: 'round' }}
+                        />
+                        <defs>
+                            <linearGradient id="splash-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" stopColor="#2563eb" />
+                                <stop offset="100%" stopColor="#3b82f6" />
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                )}
 
-                <div className="relative flex flex-col items-center text-center z-10 pointer-events-none">
+                <div className={clsx(
+                    "relative flex flex-col items-center text-center z-10 pointer-events-none transition-opacity duration-300",
+                    hideCircle && "opacity-0"
+                )}>
                     <div className="relative mb-6">
                         <div className="absolute inset-0 bg-blue-500 rounded-2xl blur-2xl opacity-20 animate-pulse" />
                         <div className="relative bg-gradient-to-br from-blue-600 to-blue-900 p-5 rounded-2xl shadow-xl border border-white/5">
