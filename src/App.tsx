@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { CryptoList } from './components/Sidebar/CryptoList';
 import { TVChart } from './components/Chart/TVChart';
 import { TransactionHistory } from './components/History/TransactionHistory';
+import logo from './assets/logo.png';
 import { TradePanel } from './components/Trading/TradePanel';
 import { BotPanel } from './components/Bot/BotPanel';
 import { HoldingsPage } from './components/Holdings/HoldingsPage';
@@ -391,7 +392,7 @@ function App() {
       <header className="h-14 border-b border-border flex items-center px-4 justify-between bg-transparent shrink-0 dark:border-[#2a2e39]">
         <div className="flex items-center gap-2">
           <div className="flex items-center justify-center">
-            <img src="/icons/icon.png" alt="Logo" className="w-8 h-8 object-contain" />
+            <img src={logo} alt="Logo" className="w-8 h-8 object-contain" />
           </div>
           <h1 className="font-bold text-lg tracking-tight">CryptoSim <span className="text-blue-500">PRO</span></h1>
           <button
@@ -565,7 +566,7 @@ function App() {
                   onClick={() => setIsRightPanelOpen(!isRightPanelOpen)}
                   className="md:hidden ml-auto p-1.5 rounded-lg bg-blue-600 text-white shadow-lg"
                 >
-                  <img src="/icons/icon.png" alt="Bot" className="w-[18px] h-[18px] object-contain invert" />
+                  <img src={logo} alt="Bot" className="w-[18px] h-[18px] object-contain invert" />
                 </button>
               </div>
               <TVChart
