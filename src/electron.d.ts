@@ -7,6 +7,9 @@ declare global {
             checkUpdates: () => void;
             onUpdateStatus: (callback: (data: any) => void) => void;
             expandWindow: () => void;
+            minimize: () => void;
+            maximize: () => void;
+            close: () => void;
         };
     }
 }

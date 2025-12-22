@@ -5,4 +5,7 @@ contextBridge.exposeInMainWorld('electron', {
     checkUpdates: () => ipcRenderer.send('check-for-updates'),
     onUpdateStatus: (callback) => ipcRenderer.on('update-status', (_event, value) => callback(value)),
     expandWindow: () => ipcRenderer.send('expand-window'),
+    minimize: () => ipcRenderer.send('window-minimize'),
+    maximize: () => ipcRenderer.send('window-maximize'),
+    close: () => ipcRenderer.send('window-close'),
 });

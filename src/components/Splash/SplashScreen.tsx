@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Activity, ShieldCheck, AlertCircle, RefreshCw } from 'lucide-react';
-import { clsx } from 'clsx';
+import { Activity, AlertCircle, RefreshCw } from 'lucide-react';
 
 interface SplashScreenProps {
     onFinished: () => void;
@@ -12,7 +11,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinished }) => {
         message: string;
         percent?: number;
         version?: string;
-    }>({ status: 'checking', message: 'Démarrage de CryptoSim Pro...' });
+    }>({ status: 'checking', message: 'Vérification...' });
 
     const [dots, setDots] = useState('');
 
@@ -28,129 +27,122 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinished }) => {
             window.electron.onUpdateStatus((data: any) => {
                 setStatus(data);
 
-                // If no update or error, wait a bit and then finish
                 if (data.status === 'not-available' || data.status === 'error') {
                     setTimeout(() => {
-                        setStatus(prev => ({ ...prev, status: 'finishing', message: 'Initialisation des modules...' }));
+                        setStatus(prev => ({ ...prev, status: 'finishing', message: 'Prêt' }));
 
-                        // Expand window before transitioning
                         if (window.electron && window.electron.expandWindow) {
                             window.electron.expandWindow();
                         }
 
-                        setTimeout(onFinished, 1500);
-                    }, 2000);
+                        setTimeout(onFinished, 1200);
+                    }, 1500);
                 }
             });
 
-            // Timeout safety for web/dev/errors
             const safetyTimeout = setTimeout(() => {
                 setStatus(prev => {
                     if (prev.status === 'checking') {
-                        // Expand window for safety timeout too
                         if (window.electron && window.electron.expandWindow) {
                             window.electron.expandWindow();
                         }
-                        return { status: 'finishing', message: 'Accès au terminal de trading...' };
+                        return { status: 'finishing', message: 'Prêt' };
                     }
                     return prev;
                 });
-                setTimeout(onFinished, 2000);
-            }, 5000);
+                setTimeout(onFinished, 1500);
+            }, 6000);
 
             return () => clearTimeout(safetyTimeout);
         } else {
-            // For Web version, just show a quick splash
             setTimeout(() => {
-                setStatus({ status: 'finishing', message: 'Lancement de la version Web...' });
-                setTimeout(onFinished, 2000);
+                setStatus({ status: 'finishing', message: 'Web Version' });
+                setTimeout(onFinished, 1500);
             }, 3000);
         }
     }, [onFinished]);
 
+    // Circular Progress Calculation
+    const radius = 180;
+    const circumference = 2 * Math.PI * radius;
+    const progress = status.percent ?? (status.status === 'checking' ? 30 : 100);
+    const strokeDashoffset = circumference - (progress / 100) * circumference;
+
     return (
-        <div className="fixed inset-0 z-[9999] bg-[#0d1117] flex flex-col items-center justify-center text-white overflow-hidden">
-            {/* Drag region for frameless window */}
-            <div className="absolute top-0 left-0 right-0 h-16" style={{ WebkitAppRegion: 'drag' } as any} />
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center overflow-hidden bg-transparent">
+            {/* Main Circular Container */}
+            <div className="relative w-[400px] h-[400px] flex items-center justify-center">
 
-            {/* Background Animated Gradients */}
-            <div className="absolute inset-0 opacity-20">
-                <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-600 rounded-full blur-[120px] animate-pulse" />
-                <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-indigo-900 rounded-full blur-[120px] animate-pulse delay-700" />
-            </div>
+                {/* Drag region for frameless window */}
+                <div className="absolute inset-0 rounded-full" style={{ WebkitAppRegion: 'drag' } as any} />
 
-            <div className="relative flex flex-col items-center max-w-md w-full px-8">
-                {/* Animated Logo Container */}
-                <div className="relative mb-12 group">
-                    <div className="absolute inset-0 bg-blue-500 rounded-2xl blur-xl opacity-20 group-hover:opacity-40 transition-opacity animate-pulse" />
-                    <div className="relative bg-gradient-to-br from-blue-600 to-indigo-700 p-6 rounded-3xl shadow-2xl transform hover:scale-105 transition-transform duration-500">
-                        <Activity size={64} className="text-white animate-[bounce_3s_infinite]" />
+                {/* Background Circle */}
+                <div className="absolute inset-4 rounded-full bg-[#0d1117] shadow-[0_0_50px_rgba(0,0,0,0.5)] border border-blue-900/20" />
+
+                {/* SVG Progress Circle */}
+                <svg className="absolute inset-0 w-full h-full -rotate-90 transform" viewBox="0 0 400 400">
+                    {/* Background Track */}
+                    <circle
+                        cx="200"
+                        cy="200"
+                        r={radius}
+                        fill="none"
+                        stroke="rgba(30, 41, 59, 0.4)"
+                        strokeWidth="8"
+                    />
+                    {/* Progress Bar */}
+                    <circle
+                        cx="200"
+                        cy="200"
+                        r={radius}
+                        fill="none"
+                        stroke="url(#gradient)"
+                        strokeWidth="8"
+                        strokeDasharray={circumference}
+                        style={{
+                            strokeDashoffset,
+                            transition: 'stroke-dashoffset 0.8s ease-in-out',
+                            strokeLinecap: 'round'
+                        }}
+                    />
+                    <defs>
+                        <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" stopColor="#2563eb" />
+                            <stop offset="100%" stopColor="#6366f1" />
+                        </linearGradient>
+                    </defs>
+                </svg>
+
+                {/* Center Content */}
+                <div className="relative flex flex-col items-center justify-center text-center p-8 z-10 pointer-events-none">
+                    <div className="relative mb-6">
+                        <div className="absolute inset-0 bg-blue-500 rounded-2xl blur-xl opacity-20 animate-pulse" />
+                        <div className="relative bg-gradient-to-br from-blue-600 to-indigo-700 p-5 rounded-2xl shadow-xl">
+                            <Activity size={48} className="text-white animate-pulse" />
+                        </div>
                     </div>
 
-                    {/* Decorative Rings */}
-                    <div className="absolute -inset-4 border border-blue-500/10 rounded-full animate-[spin_10s_linear_infinite]" />
-                    <div className="absolute -inset-8 border border-indigo-500/5 rounded-full animate-[spin_15s_linear_infinite_reverse]" />
-                </div>
-
-                {/* Branding */}
-                <div className="text-center mb-12">
-                    <h1 className="text-4xl font-extrabold tracking-tighter mb-2 bg-clip-text text-transparent bg-gradient-to-r from-white via-blue-100 to-blue-300">
+                    <h1 className="text-2xl font-black tracking-tighter mb-1 bg-clip-text text-transparent bg-gradient-to-r from-white to-blue-300">
                         CRYPTOSIM <span className="text-blue-500">PRO</span>
                     </h1>
-                    <p className="text-blue-400/60 text-sm font-medium tracking-[0.2em] uppercase">
-                        Professional Trading Terminal
-                    </p>
-                </div>
 
-                {/* Status Area */}
-                <div className="w-full space-y-6">
-                    <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wider">
-                        <div className="flex items-center gap-2 text-blue-400">
+                    <div className="flex flex-col items-center gap-1 mt-4">
+                        <div className="flex items-center gap-2 text-[10px] font-bold text-blue-400 uppercase tracking-widest">
                             {status.status === 'error' ? (
-                                <AlertCircle size={14} className="text-red-500" />
-                            ) : status.status === 'ready' || status.status === 'not-available' ? (
-                                <ShieldCheck size={14} className="text-green-500" />
+                                <AlertCircle size={12} className="text-red-500" />
                             ) : (
-                                <RefreshCw size={14} className="animate-spin" />
+                                <RefreshCw size={12} className="animate-spin" />
                             )}
-                            <span>{status.message}{status.status === 'checking' && dots}</span>
+                            <span>{status.message}{dots}</span>
                         </div>
                         {status.percent !== undefined && (
-                            <span className="text-blue-300 shadow-[0_0_10px_rgba(59,130,246,0.5)]">{Math.round(status.percent)}%</span>
+                            <span className="text-blue-300 text-xs font-mono">{Math.round(status.percent)}%</span>
                         )}
                     </div>
-
-                    {/* Progress Bar Container */}
-                    <div className="h-1.5 w-full bg-blue-950/40 rounded-full border border-blue-900/20 overflow-hidden backdrop-blur-sm">
-                        <div
-                            className={clsx(
-                                "h-full transition-all duration-500 ease-out relative",
-                                status.status === 'error' ? "bg-red-500 shadow-[0_0_15px_rgba(239,68,68,0.5)]" :
-                                    status.status === 'ready' || status.status === 'finishing' ? "bg-green-500 shadow-[0_0_15px_rgba(34,197,94,0.5)]" :
-                                        "bg-gradient-to-r from-blue-600 to-indigo-500 shadow-[0_0_15px_rgba(59,130,246,0.5)]"
-                            )}
-                            style={{
-                                width: status.status === 'finishing' || status.status === 'ready' || status.status === 'not-available' ? '100%' :
-                                    status.percent ? `${status.percent}%` :
-                                        status.status === 'checking' ? '30%' : '10%'
-                            }}
-                        >
-                            {/* Glossy overlay */}
-                            <div className="absolute inset-0 bg-gradient-to-b from-white/20 to-transparent" />
-                        </div>
-                    </div>
-
-                    {/* Footer Info */}
-                    <div className="flex justify-between items-center text-[10px] text-white/30 font-medium">
-                        <span>SECURE SYSTEM ACTIVE</span>
-                        <span>V{status.version || '0.0.13'}</span>
-                    </div>
                 </div>
-            </div>
 
-            {/* Aesthetic micro-particles (Optional: can add more if needed) */}
-            <div className="absolute bottom-8 text-[10px] text-white/10 tracking-widest font-mono uppercase">
-                © 2025 Cryptosim Ecosystem. All rights reserved.
+                {/* Decorative particles/glow */}
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[380px] h-[380px] rounded-full border border-blue-500/5 pointer-events-none animate-ping opacity-20" />
             </div>
         </div>
     );

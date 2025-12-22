@@ -43,7 +43,8 @@ function createWindow() {
         width: 450,
         height: 450,
         resizable: false,
-        frame: false, // Splash/Login usually frameless
+        frame: false,
+        transparent: true,
         center: true,
         webPreferences: {
             nodeIntegration: false,
@@ -51,7 +52,7 @@ function createWindow() {
             preload: path.join(__dirname, 'preload.cjs'),
             sandbox: false,
         },
-        backgroundColor: '#0d1117',
+        backgroundColor: '#00000000',
         icon: path.join(__dirname, '../public/icons/icon.png'),
     });
 
@@ -138,19 +139,33 @@ ipcMain.on('expand-window', () => {
         win.setFullScreenable(true);
         // We use a small timeout to let the UI update if needed
         setTimeout(() => {
-            win.setSize(1280, 800, true); // true for animation on macOS, but we're on Windows
+            win.setSize(1280, 800, true);
             win.center();
-            // Since we set frame: false for splash, we might want to keep it false or change it?
-            // Actually, for the main app, user might want the frame back.
-            // But Electron doesn't allow changing 'frame' after window creation easily on all platforms without recreation.
-            // Let's check if we can live without frame (custom titlebar) or if we should have frame from start.
-            // If we have frame from start, the splash looks less like a "square splash".
-            // Let's stick with frame: false and I will add CSS for dragging if needed, 
-            // OR I can use win.setMenuBarVisibility(true) etc.
-            // Actually, if I want the "full app size" with standard windows buttons, I should probably have frame: true for the main app.
-            // A common trick is to have two windows, but let's try to stick to one.
+            // We keep it transparent but the body will have its own background
         }, 100);
     }
+});
+
+// Window Controls
+ipcMain.on('window-minimize', () => {
+    const win = BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0];
+    if (win) win.minimize();
+});
+
+ipcMain.on('window-maximize', () => {
+    const win = BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0];
+    if (win) {
+        if (win.isMaximized()) {
+            win.unmaximize();
+        } else {
+            win.maximize();
+        }
+    }
+});
+
+ipcMain.on('window-close', () => {
+    const win = BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0];
+    if (win) win.close();
 });
 
 // Manual update trigger via IPC
