@@ -53,7 +53,7 @@ function createWindow() {
             sandbox: false,
         },
         backgroundColor: '#00000000',
-        icon: path.join(__dirname, '../public/icons/icon.png'),
+        icon: path.join(__dirname, '../build/icon.png'),
     });
 
     if (isDev) {
