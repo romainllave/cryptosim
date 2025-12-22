@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { CryptoList } from './components/Sidebar/CryptoList';
 import { TVChart } from './components/Chart/TVChart';
 import { TransactionHistory } from './components/History/TransactionHistory';
-import logo from './assets/logo.png';
+import logo from './assets/logo.svg';
 import { TradePanel } from './components/Trading/TradePanel';
 import { BotPanel } from './components/Bot/BotPanel';
 import { HoldingsPage } from './components/Holdings/HoldingsPage';
