@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Activity, AlertCircle, RefreshCw } from 'lucide-react';
+import { clsx } from 'clsx';
 
 interface SplashScreenProps {
     onFinished: () => void;
@@ -14,6 +15,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinished }) => {
     }>({ status: 'checking', message: 'Vérification...' });
 
     const [dots, setDots] = useState('');
+    const [isExpanding, setIsExpanding] = useState(false);
 
     useEffect(() => {
         const interval = setInterval(() => {
@@ -21,6 +23,19 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinished }) => {
         }, 500);
         return () => clearInterval(interval);
     }, []);
+
+    const triggerFinished = () => {
+        setIsExpanding(true);
+        // Start window expansion slightly after visual expansion starts
+        setTimeout(() => {
+            if (window.electron && window.electron.expandWindow) {
+                window.electron.expandWindow();
+            }
+        }, 300);
+
+        // Final transition to app
+        setTimeout(onFinished, 1000);
+    };
 
     useEffect(() => {
         if (window.electron && window.electron.onUpdateStatus) {
@@ -30,12 +45,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinished }) => {
                 if (data.status === 'not-available' || data.status === 'error') {
                     setTimeout(() => {
                         setStatus(prev => ({ ...prev, status: 'finishing', message: 'Prêt' }));
-
-                        if (window.electron && window.electron.expandWindow) {
-                            window.electron.expandWindow();
-                        }
-
-                        setTimeout(onFinished, 1200);
+                        triggerFinished();
                     }, 1500);
                 }
             });
@@ -43,21 +53,18 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinished }) => {
             const safetyTimeout = setTimeout(() => {
                 setStatus(prev => {
                     if (prev.status === 'checking') {
-                        if (window.electron && window.electron.expandWindow) {
-                            window.electron.expandWindow();
-                        }
+                        triggerFinished();
                         return { status: 'finishing', message: 'Prêt' };
                     }
                     return prev;
                 });
-                setTimeout(onFinished, 1500);
             }, 6000);
 
             return () => clearTimeout(safetyTimeout);
         } else {
             setTimeout(() => {
                 setStatus({ status: 'finishing', message: 'Web Version' });
-                setTimeout(onFinished, 1500);
+                triggerFinished();
             }, 3000);
         }
     }, [onFinished]);
@@ -71,50 +78,58 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinished }) => {
     return (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center overflow-hidden bg-transparent">
             {/* Main Circular Container */}
-            <div className="relative w-[400px] h-[400px] flex items-center justify-center">
+            <div className={clsx(
+                "relative w-[400px] h-[400px] flex items-center justify-center transition-all duration-700",
+                isExpanding && "scale-[5] opacity-0"
+            )}>
 
                 {/* Drag region for frameless window */}
                 <div className="absolute inset-0 rounded-full" style={{ WebkitAppRegion: 'drag' } as any} />
 
-                {/* Background Circle */}
-                <div className="absolute inset-4 rounded-full bg-[#0d1117] shadow-[0_0_50px_rgba(0,0,0,0.5)] border border-blue-900/20" />
+                {/* Background Circle - The white box fix is to NOT have a background on the FULL div but only this circle */}
+                <div className="absolute inset-4 rounded-full bg-[#0d1117] shadow-[0_0_50px_rgba(0,0,0,0.8)] border border-blue-900/40" />
 
                 {/* SVG Progress Circle */}
-                <svg className="absolute inset-0 w-full h-full -rotate-90 transform" viewBox="0 0 400 400">
-                    {/* Background Track */}
-                    <circle
-                        cx="200"
-                        cy="200"
-                        r={radius}
-                        fill="none"
-                        stroke="rgba(30, 41, 59, 0.4)"
-                        strokeWidth="8"
-                    />
-                    {/* Progress Bar */}
-                    <circle
-                        cx="200"
-                        cy="200"
-                        r={radius}
-                        fill="none"
-                        stroke="url(#gradient)"
-                        strokeWidth="8"
-                        strokeDasharray={circumference}
-                        style={{
-                            strokeDashoffset,
-                            transition: 'stroke-dashoffset 0.8s ease-in-out',
-                            strokeLinecap: 'round'
-                        }}
-                    />
-                    <defs>
-                        <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                            <stop offset="0%" stopColor="#2563eb" />
-                            <stop offset="100%" stopColor="#6366f1" />
-                        </linearGradient>
-                    </defs>
-                </svg>
+                {!isExpanding && (
+                    <svg className="absolute inset-0 w-full h-full -rotate-90 transform" viewBox="0 0 400 400">
+                        {/* Background Track */}
+                        <circle
+                            cx="200"
+                            cy="200"
+                            r={radius}
+                            fill="none"
+                            stroke="rgba(30, 41, 59, 0.4)"
+                            strokeWidth="8"
+                        />
+                        {/* Progress Bar */}
+                        <circle
+                            cx="200"
+                            cy="200"
+                            r={radius}
+                            fill="none"
+                            stroke="url(#gradient)"
+                            strokeWidth="8"
+                            strokeDasharray={circumference}
+                            style={{
+                                strokeDashoffset,
+                                transition: 'stroke-dashoffset 0.8s ease-in-out',
+                                strokeLinecap: 'round'
+                            }}
+                        />
+                        <defs>
+                            <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" stopColor="#2563eb" />
+                                <stop offset="100%" stopColor="#6366f1" />
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                )}
 
                 {/* Center Content */}
-                <div className="relative flex flex-col items-center justify-center text-center p-8 z-10 pointer-events-none">
+                <div className={clsx(
+                    "relative flex flex-col items-center justify-center text-center p-8 z-10 pointer-events-none transition-opacity duration-300",
+                    isExpanding && "opacity-0"
+                )}>
                     <div className="relative mb-6">
                         <div className="absolute inset-0 bg-blue-500 rounded-2xl blur-xl opacity-20 animate-pulse" />
                         <div className="relative bg-gradient-to-br from-blue-600 to-indigo-700 p-5 rounded-2xl shadow-xl">
@@ -142,7 +157,9 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinished }) => {
                 </div>
 
                 {/* Decorative particles/glow */}
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[380px] h-[380px] rounded-full border border-blue-500/5 pointer-events-none animate-ping opacity-20" />
+                {!isExpanding && (
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[380px] h-[380px] rounded-full border border-blue-500/5 pointer-events-none animate-ping opacity-20" />
+                )}
             </div>
         </div>
     );

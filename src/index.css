@@ -3,8 +3,17 @@
 @tailwind utilities;
 
 @layer base {
+
+  html,
   body {
-    @apply bg-background text-text-primary antialiased;
+    background: transparent !important;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  body {
+    @apply text-text-primary antialiased;
   }
 }
 
@@ -55,4 +64,23 @@
 
 .fade-in {
   animation: fadeIn 1s ease-out;
+}
+
+/* Expanding Animation for Splash */
+@keyframes expandCircle {
+  0% {
+    transform: scale(1);
+    border-radius: 9999px;
+    opacity: 1;
+  }
+
+  100% {
+    transform: scale(3.5);
+    border-radius: 24px;
+    opacity: 0;
+  }
+}
+
+.animate-expand {
+  animation: expandCircle 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
