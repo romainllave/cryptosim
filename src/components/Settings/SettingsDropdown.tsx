@@ -13,6 +13,7 @@ import {
     Wallet,
     RefreshCw
 } from 'lucide-react';
+import { updateUserSettings } from '../../services/supabase';
 
 
 interface SettingsDropdownProps {
@@ -134,7 +135,11 @@ export const SettingsDropdown: React.FC<SettingsDropdownProps> = ({
 
                 {/* Settings Section */}
                 <button
-                    onClick={() => setIsDarkMode(!isDarkMode)}
+                    onClick={() => {
+                        const newTheme = !isDarkMode;
+                        setIsDarkMode(newTheme);
+                        updateUserSettings({ theme: newTheme ? 'dark' : 'light' });
+                    }}
                     className="w-full px-4 py-2 text-sm flex items-center justify-between hover:bg-gray-100 dark:hover:bg-[#2a2e39] transition-colors text-text-primary dark:text-[#d1d4dc]"
                 >
                     <div className="flex items-center gap-3">
