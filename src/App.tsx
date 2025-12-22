@@ -7,6 +7,7 @@ import { BotPanel } from './components/Bot/BotPanel';
 import { HoldingsPage } from './components/Holdings/HoldingsPage';
 import { SettingsDropdown } from './components/Settings/SettingsDropdown';
 import { StrategyPage } from './components/Strategy/StrategyPage';
+import { ChartToolbar } from './components/Chart/ChartToolbar';
 import type { Crypto, Transaction } from './types';
 import { MOCK_CRYPTOS } from './types';
 import type { CandleData } from './utils/chartData';
@@ -54,6 +55,7 @@ function App() {
   const [strategyMode, setStrategyMode] = useState<'LONG' | 'SHORT'>('LONG');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
   const [isRightPanelOpen, setIsRightPanelOpen] = useState<boolean>(false);
+  const [selectedTool, setSelectedTool] = useState<string>('cursor');
   const settingsRef = useRef<HTMLDivElement>(null);
 
   // Bot state (Synced with Supabase)
@@ -578,6 +580,17 @@ function App() {
                   areaBottomColor: isDarkMode ? 'rgba(41, 98, 255, 0)' : undefined,
                 }}
               />
+
+              {/* Analysis Toolbar (Only in Full Screen) */}
+              <div className={clsx(
+                "absolute top-16 left-1/2 transform -translate-x-1/2 z-20 transition-all duration-300",
+                isFullScreen ? "opacity-100 translate-y-0 pointer-events-auto" : "opacity-0 -translate-y-4 pointer-events-none"
+              )}>
+                <ChartToolbar
+                  selectedTool={selectedTool}
+                  onSelectTool={setSelectedTool}
+                />
+              </div>
             </div>
 
             {/* History Section */}
