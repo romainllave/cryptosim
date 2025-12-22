@@ -111,9 +111,9 @@
 }
 
 .animate-beam-h {
-  animation: beam-h 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation: beam-h 1.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
 .animate-beam-v {
-  animation: beam-v 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation: beam-v 1.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
