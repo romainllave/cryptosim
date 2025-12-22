@@ -118,7 +118,7 @@ export const ChartOverlay: React.FC<ChartOverlayProps> = ({ chart, series, curre
     return (
         <svg
             ref={overlayRef}
-            className="absolute inset-0 z-10 w-full h-full pointer-events-auto"
+            className={`absolute inset-0 z-10 w-full h-full ${currentTool === 'cursor' ? 'pointer-events-none' : 'pointer-events-auto'}`}
             onMouseDown={handleMouseDown}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
