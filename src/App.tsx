@@ -388,10 +388,10 @@ function App() {
       {/* Header */}
       <header className="h-14 border-b border-border flex items-center px-4 justify-between bg-white shrink-0 dark:bg-[#1e222d] dark:border-[#2a2e39]">
         <div className="flex items-center gap-2">
-          <div className="bg-blue-600 text-white p-1 rounded">
+          <div className="bg-gradient-to-br from-blue-600 to-blue-800 text-white p-2 rounded-xl shadow-lg border border-white/10">
             <Activity size={20} />
           </div>
-          <h1 className="font-bold text-lg tracking-tight">CryptoSim</h1>
+          <h1 className="font-bold text-lg tracking-tight">CryptoSim <span className="text-blue-500">PRO</span></h1>
           <button
             onClick={() => setView('holdings')}
             className={clsx(
