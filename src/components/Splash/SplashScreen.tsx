@@ -6,7 +6,7 @@ interface SplashScreenProps {
     onFinished: () => void;
 }
 
-type AnimStage = 'loading' | 'connecting-corners' | 'forming-frame' | 'revealing' | 'finished';
+type AnimStage = 'loading' | 'connecting-corners' | 'forming-frame' | 'finished';
 
 export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinished }) => {
     const [status, setStatus] = useState<{
@@ -26,24 +26,21 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinished }) => {
     }, []);
 
     const triggerAnimation = async () => {
-        // Stage 1: Beams connect center to corners
+        // Stage 1: Beams connect center to corners (X shape)
         setAnimStage('connecting-corners');
-        await new Promise(r => setTimeout(r, 900));
+        await new Promise(r => setTimeout(r, 1000));
 
         // Stage 2: Rectangle frame forms
         setAnimStage('forming-frame');
-        await new Promise(r => setTimeout(r, 1000));
+        await new Promise(r => setTimeout(r, 1200));
 
-        // Stage 3: Reveal the app
-        setAnimStage('revealing');
-
+        // Reveal the app
         if (window.electron?.expandWindow) {
             window.electron.expandWindow();
         }
 
-        await new Promise(r => setTimeout(r, 200));
         setAnimStage('finished');
-        onFinished();
+        setTimeout(onFinished, 100);
     };
 
     useEffect(() => {
@@ -90,27 +87,63 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinished }) => {
     const strokeDashoffset = circumference - (progress / 100) * circumference;
 
     const showDiagonals = animStage === 'connecting-corners' || animStage === 'forming-frame';
-    const showFrame = animStage === 'forming-frame' || animStage === 'revealing';
+    const showFrame = animStage === 'forming-frame';
     const hideCircle = animStage !== 'loading';
 
     return (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-transparent select-none overflow-hidden">
 
-            {/* Diagonal Beams (Center to Corners) */}
+            {/* Diagonal Beams (X shape from center to corners) */}
             {showDiagonals && (
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    {/* TL */}
-                    <div className="absolute w-[755px] h-1.5 bg-blue-500 origin-left animate-gpu-beam neon-pro-fast rounded-full"
-                        style={{ rotate: '-148deg' }} />
-                    {/* TR */}
-                    <div className="absolute w-[755px] h-1.5 bg-blue-500 origin-left animate-gpu-beam neon-pro-fast rounded-full"
-                        style={{ rotate: '-32deg' }} />
-                    {/* BL */}
-                    <div className="absolute w-[755px] h-1.5 bg-blue-500 origin-left animate-gpu-beam neon-pro-fast rounded-full"
-                        style={{ rotate: '148deg' }} />
-                    {/* BR */}
-                    <div className="absolute w-[755px] h-1.5 bg-blue-500 origin-left animate-gpu-beam neon-pro-fast rounded-full"
-                        style={{ rotate: '32deg' }} />
+                    {/* Top-Left beam */}
+                    <div
+                        className="absolute h-2 bg-blue-500 rounded-full neon-pro-fast"
+                        style={{
+                            width: '755px',
+                            left: '50%',
+                            top: '50%',
+                            transformOrigin: 'left center',
+                            animation: 'gpu-grow-beam 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                            transform: 'translate(0, -50%) rotate(-148deg) scaleX(0)'
+                        }}
+                    />
+                    {/* Top-Right beam */}
+                    <div
+                        className="absolute h-2 bg-blue-500 rounded-full neon-pro-fast"
+                        style={{
+                            width: '755px',
+                            right: '50%',
+                            top: '50%',
+                            transformOrigin: 'right center',
+                            animation: 'gpu-grow-beam 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                            transform: 'translate(0, -50%) rotate(148deg) scaleX(0)'
+                        }}
+                    />
+                    {/* Bottom-Left beam */}
+                    <div
+                        className="absolute h-2 bg-blue-500 rounded-full neon-pro-fast"
+                        style={{
+                            width: '755px',
+                            left: '50%',
+                            bottom: '50%',
+                            transformOrigin: 'left center',
+                            animation: 'gpu-grow-beam 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                            transform: 'translate(0, 50%) rotate(148deg) scaleX(0)'
+                        }}
+                    />
+                    {/* Bottom-Right beam */}
+                    <div
+                        className="absolute h-2 bg-blue-500 rounded-full neon-pro-fast"
+                        style={{
+                            width: '755px',
+                            right: '50%',
+                            bottom: '50%',
+                            transformOrigin: 'right center',
+                            animation: 'gpu-grow-beam 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                            transform: 'translate(0, 50%) rotate(-148deg) scaleX(0)'
+                        }}
+                    />
                 </div>
             )}
 
