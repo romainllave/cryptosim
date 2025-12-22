@@ -27,7 +27,10 @@ import {
   getTrades,
   getBalance,
   subscribeToBalance,
-  subscribeToPositions
+  subscribeToPositions,
+  getHoldings,
+  saveHoldings,
+  subscribeToHoldings
 } from './services/supabase';
 import type { BotTrade } from './services/supabase';
 
@@ -117,18 +120,9 @@ function App() {
       }));
       setTransactions(mappedTransactions);
 
-      // 4. Calculate Holdings
-      const initialHoldings: Record<string, number> = {};
-      mappedTransactions.forEach(tx => {
-        const symbol = tx.symbol;
-        if (!initialHoldings[symbol]) initialHoldings[symbol] = 0;
-        if (tx.type === 'BUY') {
-          initialHoldings[symbol] += tx.amount;
-        } else {
-          initialHoldings[symbol] -= tx.amount;
-        }
-      });
-      setHoldings(initialHoldings);
+      // 4. Load Holdings from Supabase
+      const dbHoldings = await getHoldings();
+      setHoldings(dbHoldings);
     }
 
     initData();
@@ -184,6 +178,25 @@ function App() {
     });
     return () => unsubscribe();
   }, []);
+
+  // Subscribe to Holdings from Supabase (Real-time)
+  useEffect(() => {
+    const unsubscribe = subscribeToHoldings((newHoldings) => {
+      setHoldings(newHoldings);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Save holdings to Supabase when they change
+  const holdingsRef = useRef(holdings);
+  useEffect(() => {
+    // Skip initial empty state
+    if (Object.keys(holdings).length > 0 && holdings !== holdingsRef.current) {
+      holdingsRef.current = holdings;
+      saveHoldings(holdings);
+    }
+  }, [holdings]);
+
 
   // Subscribe to Positions from Supabase (Real-time)
   useEffect(() => {

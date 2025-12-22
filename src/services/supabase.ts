@@ -447,3 +447,65 @@ export function subscribeToLogs(callback: (log: LogEntry) => void) {
     };
 }
 
+// Holdings Sync
+export interface Holding {
+    symbol: string;
+    amount: number;
+}
+
+export async function saveHoldings(holdings: Record<string, number>): Promise<void> {
+    // Convert holdings object to array of rows
+    const rows = Object.entries(holdings).map(([symbol, amount]) => ({
+        symbol,
+        amount,
+        updated_at: new Date().toISOString()
+    }));
+
+    if (rows.length === 0) return;
+
+    const { error } = await supabase
+        .from('holdings')
+        .upsert(rows, { onConflict: 'symbol' });
+
+    if (error) {
+        console.error('Error saving holdings:', error);
+    }
+}
+
+export async function getHoldings(): Promise<Record<string, number>> {
+    const { data, error } = await supabase
+        .from('holdings')
+        .select('symbol, amount');
+
+    if (error) {
+        console.error('Error getting holdings:', error);
+        return {};
+    }
+
+    const result: Record<string, number> = {};
+    (data || []).forEach(row => {
+        if (row.amount > 0) {
+            result[row.symbol] = row.amount;
+        }
+    });
+    return result;
+}
+
+export function subscribeToHoldings(callback: (holdings: Record<string, number>) => void) {
+    const channel = supabase
+        .channel('holdings-sync')
+        .on(
+            'postgres_changes',
+            { event: '*', schema: 'public', table: 'holdings' },
+            async () => {
+                // Refetch all holdings on any change
+                const holdings = await getHoldings();
+                callback(holdings);
+            }
+        )
+        .subscribe();
+
+    return () => {
+        supabase.removeChannel(channel);
+    };
+}
