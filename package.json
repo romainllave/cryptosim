@@ -1,7 +1,7 @@
 {
   "name": "sitetrading",
   "private": true,
-  "version": "0.0.24",
+  "version": "0.0.25",
   "description": "Professional Crypto Trading Simulator",
   "author": "Romain Llave",
   "type": "module",
@@ -88,8 +88,8 @@
       "icon": "build/icon.png"
     },
     "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
+      "oneClick": true,
+      "allowToChangeInstallationDirectory": false,
       "shortcutName": "CryptoSim Pro",
       "createDesktopShortcut": "always",
       "createStartMenuShortcut": true
