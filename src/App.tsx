@@ -391,8 +391,8 @@ function App() {
       {/* Header */}
       <header className="h-14 border-b border-border flex items-center px-4 justify-between bg-transparent shrink-0 dark:border-[#2a2e39]">
         <div className="flex items-center gap-2">
-          <div className="flex items-center justify-center">
-            <img src={logo} alt="Logo" className="w-8 h-8 object-contain" />
+          <div className="flex items-center justify-center rounded-lg overflow-hidden border border-white/10">
+            <img src={logo} alt="Logo" className="w-8 h-8 object-cover" />
           </div>
           <h1 className="font-bold text-lg tracking-tight">CryptoSim <span className="text-blue-500">PRO</span></h1>
           <button

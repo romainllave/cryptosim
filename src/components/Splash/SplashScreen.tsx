@@ -141,8 +141,8 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinished }) => {
 
                     {/* Logo & Text */}
                     <div className="relative flex flex-col items-center text-center z-10 pointer-events-none">
-                        <div className="mb-8">
-                            <img src={logo} alt="Logo" className="w-24 h-24 object-contain animate-pulse" />
+                        <div className="mb-8 rounded-2xl overflow-hidden shadow-2xl">
+                            <img src={logo} alt="Logo" className="w-24 h-24 object-cover animate-pulse" />
                         </div>
                         <h1 className="text-2xl font-black tracking-tight text-white">
                             CRYPTOSIM <span className="text-blue-400">PRO</span>
