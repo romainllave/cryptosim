@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Activity, RefreshCw } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import { clsx } from 'clsx';
 
 interface SplashScreenProps {
@@ -140,8 +140,8 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinished }) => {
 
                     {/* Logo & Text */}
                     <div className="relative flex flex-col items-center text-center z-10 pointer-events-none">
-                        <div className="text-blue-500 mb-8">
-                            <Activity size={80} className="animate-pulse" />
+                        <div className="mb-8">
+                            <img src="/icons/icon.png" alt="Logo" className="w-24 h-24 object-contain animate-pulse" />
                         </div>
                         <h1 className="text-2xl font-black tracking-tight text-white">
                             CRYPTOSIM <span className="text-blue-400">PRO</span>

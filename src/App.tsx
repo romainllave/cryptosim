@@ -11,7 +11,7 @@ import { ChartToolbar } from './components/Chart/ChartToolbar';
 import type { Crypto, Transaction } from './types';
 import { MOCK_CRYPTOS } from './types';
 import type { CandleData } from './utils/chartData';
-import { Activity, Moon, Sun, Maximize2, Minimize2, Settings, Menu, X } from 'lucide-react';
+import { Moon, Sun, Maximize2, Minimize2, Settings, Menu, X } from 'lucide-react';
 import { clsx } from 'clsx';
 import { fetchKlines, subscribeToTickers, subscribeToKline } from './services/binance';
 // import { loadBalance, saveBalance, loadTransactions, saveTransactions } from './services/storage'; // Deprecated
@@ -390,8 +390,8 @@ function App() {
       {/* Header */}
       <header className="h-14 border-b border-border flex items-center px-4 justify-between bg-transparent shrink-0 dark:border-[#2a2e39]">
         <div className="flex items-center gap-2">
-          <div className="text-blue-600">
-            <Activity size={24} />
+          <div className="flex items-center justify-center">
+            <img src="/icons/icon.png" alt="Logo" className="w-8 h-8 object-contain" />
           </div>
           <h1 className="font-bold text-lg tracking-tight">CryptoSim <span className="text-blue-500">PRO</span></h1>
           <button
@@ -565,7 +565,7 @@ function App() {
                   onClick={() => setIsRightPanelOpen(!isRightPanelOpen)}
                   className="md:hidden ml-auto p-1.5 rounded-lg bg-blue-600 text-white shadow-lg"
                 >
-                  <Activity size={18} />
+                  <img src="/icons/icon.png" alt="Bot" className="w-[18px] h-[18px] object-contain invert" />
                 </button>
               </div>
               <TVChart
