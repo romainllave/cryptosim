@@ -140,11 +140,8 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinished }) => {
 
                     {/* Logo & Text */}
                     <div className="relative flex flex-col items-center text-center z-10 pointer-events-none">
-                        <div className="relative mb-6">
-                            <div className="absolute inset-0 bg-blue-500 rounded-2xl blur-2xl opacity-20 animate-pulse" />
-                            <div className="relative bg-gradient-to-br from-blue-600 to-blue-900 p-5 rounded-2xl shadow-xl border border-white/5">
-                                <Activity size={50} className="text-white animate-pulse" />
-                            </div>
+                        <div className="text-blue-500 mb-8">
+                            <Activity size={80} className="animate-pulse" />
                         </div>
                         <h1 className="text-2xl font-black tracking-tight text-white">
                             CRYPTOSIM <span className="text-blue-400">PRO</span>
