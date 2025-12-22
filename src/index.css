@@ -66,78 +66,84 @@
   animation: fadeIn 1s ease-out;
 }
 
-/* --- Advanced High-Impact Splash Animations --- */
+/* --- Precision Splash Animations (1280x800) --- */
 
-/* Burst keyframes: from center to specific corners */
-@keyframes burst-tl {
+/* Diagonal Connector Beams (Center to Corners) */
+/* Length is ~755px, Angle is 32deg */
+
+@keyframes grow-beam-tl {
   0% {
-    transform: translate(0, 0) rotate(-45deg) scaleX(0);
+    width: 0;
     opacity: 0;
+    transform: rotate(-148deg);
   }
 
   20% {
     opacity: 1;
-    transform: scaleX(1.5);
   }
 
   100% {
-    transform: translate(-640px, -400px) rotate(-45deg) scaleX(1);
+    width: 755px;
     opacity: 1;
+    transform: rotate(-148deg);
   }
 }
 
-@keyframes burst-tr {
+@keyframes grow-beam-tr {
   0% {
-    transform: translate(0, 0) rotate(45deg) scaleX(0);
+    width: 0;
     opacity: 0;
+    transform: rotate(-32deg);
   }
 
   20% {
     opacity: 1;
-    transform: scaleX(1.5);
   }
 
   100% {
-    transform: translate(640px, -400px) rotate(45deg) scaleX(1);
+    width: 755px;
     opacity: 1;
+    transform: rotate(-32deg);
   }
 }
 
-@keyframes burst-bl {
+@keyframes grow-beam-bl {
   0% {
-    transform: translate(0, 0) rotate(45deg) scaleX(0);
+    width: 0;
     opacity: 0;
+    transform: rotate(148deg);
   }
 
   20% {
     opacity: 1;
-    transform: scaleX(1.5);
   }
 
   100% {
-    transform: translate(-640px, 400px) rotate(45deg) scaleX(1);
+    width: 755px;
     opacity: 1;
+    transform: rotate(148deg);
   }
 }
 
-@keyframes burst-br {
+@keyframes grow-beam-br {
   0% {
-    transform: translate(0, 0) rotate(-45deg) scaleX(0);
+    width: 0;
     opacity: 0;
+    transform: rotate(32deg);
   }
 
   20% {
     opacity: 1;
-    transform: scaleX(1.5);
   }
 
   100% {
-    transform: translate(640px, 400px) rotate(-45deg) scaleX(1);
+    width: 755px;
     opacity: 1;
+    transform: rotate(32deg);
   }
 }
 
-/* Drawing the frame beams */
+/* Rectangular Perimeter Drawing */
 @keyframes beam-h {
   0% {
     transform: scaleX(0);
@@ -162,7 +168,7 @@
   }
 }
 
-/* Logo and circle fade/shrink */
+/* Central Content Shrink */
 @keyframes shrink-fade-out {
   0% {
     transform: scale(1);
@@ -171,48 +177,48 @@
   }
 
   100% {
-    transform: scale(0.4);
+    transform: scale(0.6);
     opacity: 0;
     filter: blur(10px);
   }
 }
 
-.animate-burst-tl {
-  animation: burst-tl 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+.animate-grow-tl {
+  animation: grow-beam-tl 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-.animate-burst-tr {
-  animation: burst-tr 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+.animate-grow-tr {
+  animation: grow-beam-tr 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-.animate-burst-bl {
-  animation: burst-bl 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+.animate-grow-bl {
+  animation: grow-beam-bl 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-.animate-burst-br {
-  animation: burst-br 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+.animate-grow-br {
+  animation: grow-beam-br 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .animate-beam-h {
-  animation: beam-h 1s cubic-bezier(0.33, 1, 0.68, 1) forwards;
+  animation: beam-h 1.2s cubic-bezier(0.33, 1, 0.68, 1) forwards;
 }
 
 .animate-beam-v {
-  animation: beam-v 1s cubic-bezier(0.33, 1, 0.68, 1) forwards;
+  animation: beam-v 1.2s cubic-bezier(0.33, 1, 0.68, 1) forwards;
 }
 
 .animate-shrink-fade {
-  animation: shrink-fade-out 0.6s ease-in forwards;
+  animation: shrink-fade-out 0.8s ease-in forwards;
 }
 
-/* ULTRA-THICK NEON STYLE */
-.neon-glow-thick {
-  box-shadow: 0 0 10px #3b82f6,
-    0 0 25px #3b82f6,
-    0 0 45px #1d4ed8,
-    0 0 70px #1d4ed8;
+/* ULTRA-PRO NEON STYLE */
+.neon-glow-pro {
+  box-shadow: 0 0 10px #2563eb,
+    0 0 30px #2563eb,
+    0 0 60px #1e40af,
+    0 0 90px #1e3a8a;
 }
 
-.neon-border-thick {
-  filter: drop-shadow(0 0 8px #3b82f6) drop-shadow(0 0 20px #1d4ed8);
+.neon-filter-pro {
+  filter: drop-shadow(0 0 15px #3b82f6) drop-shadow(0 0 40px #1d4ed8) drop-shadow(0 0 70px #1e3a8a);
 }
