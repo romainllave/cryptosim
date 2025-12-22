@@ -147,3 +147,9 @@
 .neon-pro-border-fast {
   filter: drop-shadow(0 0 10px #3b82f6);
 }
+
+/* X Beam animation - only animates scaleX from 0 to 1 */
+.animate-x-beam {
+  animation: gpu-grow-beam 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform;
+}

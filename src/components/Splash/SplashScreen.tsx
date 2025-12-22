@@ -86,92 +86,90 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinished }) => {
     const progress = status.percent ?? (status.status === 'checking' ? 30 : 100);
     const strokeDashoffset = circumference - (progress / 100) * circumference;
 
-    const showDiagonals = animStage === 'connecting-corners' || animStage === 'forming-frame';
-    const showFrame = animStage === 'forming-frame';
-    const hideCircle = animStage !== 'loading';
+    const animStarted = animStage !== 'loading';
+    const showFrame = animStage === 'forming-frame' || animStage === 'finished';
 
     return (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-transparent select-none overflow-hidden">
 
-            {/* Diagonal Beams (X shape from center to corners) */}
-            {showDiagonals && (
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    {/* Top-Left beam */}
-                    <div
-                        className="absolute h-2 bg-blue-500 rounded-full neon-pro-fast"
-                        style={{
-                            width: '755px',
-                            left: '50%',
-                            top: '50%',
-                            transformOrigin: 'left center',
-                            animation: 'gpu-grow-beam 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards',
-                            transform: 'translate(0, -50%) rotate(-148deg) scaleX(0)'
-                        }}
-                    />
-                    {/* Top-Right beam */}
-                    <div
-                        className="absolute h-2 bg-blue-500 rounded-full neon-pro-fast"
-                        style={{
-                            width: '755px',
-                            right: '50%',
-                            top: '50%',
-                            transformOrigin: 'right center',
-                            animation: 'gpu-grow-beam 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards',
-                            transform: 'translate(0, -50%) rotate(148deg) scaleX(0)'
-                        }}
-                    />
-                    {/* Bottom-Left beam */}
-                    <div
-                        className="absolute h-2 bg-blue-500 rounded-full neon-pro-fast"
-                        style={{
-                            width: '755px',
-                            left: '50%',
-                            bottom: '50%',
-                            transformOrigin: 'left center',
-                            animation: 'gpu-grow-beam 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards',
-                            transform: 'translate(0, 50%) rotate(148deg) scaleX(0)'
-                        }}
-                    />
-                    {/* Bottom-Right beam */}
-                    <div
-                        className="absolute h-2 bg-blue-500 rounded-full neon-pro-fast"
-                        style={{
-                            width: '755px',
-                            right: '50%',
-                            bottom: '50%',
-                            transformOrigin: 'right center',
-                            animation: 'gpu-grow-beam 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards',
-                            transform: 'translate(0, 50%) rotate(-148deg) scaleX(0)'
-                        }}
-                    />
-                </div>
-            )}
+            {/* Diagonal Beams (X shape) - Always mounted, animation triggered once */}
+            <div className={clsx(
+                "absolute inset-0 flex items-center justify-center pointer-events-none transition-opacity duration-300",
+                !animStarted && "opacity-0",
+                animStage === 'finished' && "opacity-0"
+            )}>
+                {/* Top-Left beam */}
+                <div
+                    className={clsx("absolute h-2 bg-blue-500 rounded-full neon-pro-fast", animStarted && "animate-x-beam")}
+                    style={{
+                        width: '755px',
+                        left: '50%',
+                        top: '50%',
+                        transformOrigin: 'left center',
+                        transform: 'translate(0, -50%) rotate(-148deg) scaleX(0)'
+                    }}
+                />
+                {/* Top-Right beam */}
+                <div
+                    className={clsx("absolute h-2 bg-blue-500 rounded-full neon-pro-fast", animStarted && "animate-x-beam")}
+                    style={{
+                        width: '755px',
+                        right: '50%',
+                        top: '50%',
+                        transformOrigin: 'right center',
+                        transform: 'translate(0, -50%) rotate(148deg) scaleX(0)'
+                    }}
+                />
+                {/* Bottom-Left beam */}
+                <div
+                    className={clsx("absolute h-2 bg-blue-500 rounded-full neon-pro-fast", animStarted && "animate-x-beam")}
+                    style={{
+                        width: '755px',
+                        left: '50%',
+                        bottom: '50%',
+                        transformOrigin: 'left center',
+                        transform: 'translate(0, 50%) rotate(148deg) scaleX(0)'
+                    }}
+                />
+                {/* Bottom-Right beam */}
+                <div
+                    className={clsx("absolute h-2 bg-blue-500 rounded-full neon-pro-fast", animStarted && "animate-x-beam")}
+                    style={{
+                        width: '755px',
+                        right: '50%',
+                        bottom: '50%',
+                        transformOrigin: 'right center',
+                        transform: 'translate(0, 50%) rotate(-148deg) scaleX(0)'
+                    }}
+                />
+            </div>
 
-            {/* Rectangle Frame (Perimeter) */}
-            {showFrame && (
-                <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="relative w-[1280px] h-[800px]">
-                        <div className="absolute top-0 left-0 right-0 h-2 bg-blue-500 origin-left animate-gpu-h neon-pro-fast rounded-full" />
-                        <div className="absolute bottom-0 left-0 right-0 h-2 bg-blue-500 origin-right animate-gpu-h neon-pro-fast rounded-full" />
-                        <div className="absolute left-0 top-0 bottom-0 w-2 bg-blue-500 origin-top animate-gpu-v neon-pro-fast rounded-full" />
-                        <div className="absolute right-0 top-0 bottom-0 w-2 bg-blue-500 origin-bottom animate-gpu-v neon-pro-fast rounded-full" />
-                    </div>
+            {/* Rectangle Frame (Perimeter) - Always mounted */}
+            <div className={clsx(
+                "absolute inset-0 flex items-center justify-center transition-opacity duration-300",
+                !showFrame && "opacity-0"
+            )}>
+                <div className="relative w-[1280px] h-[800px]">
+                    <div className={clsx("absolute top-0 left-0 right-0 h-2 bg-blue-500 origin-left rounded-full neon-pro-fast", showFrame && "animate-gpu-h")} style={{ transform: 'scaleX(0)' }} />
+                    <div className={clsx("absolute bottom-0 left-0 right-0 h-2 bg-blue-500 origin-right rounded-full neon-pro-fast", showFrame && "animate-gpu-h")} style={{ transform: 'scaleX(0)' }} />
+                    <div className={clsx("absolute left-0 top-0 bottom-0 w-2 bg-blue-500 origin-top rounded-full neon-pro-fast", showFrame && "animate-gpu-v")} style={{ transform: 'scaleY(0)' }} />
+                    <div className={clsx("absolute right-0 top-0 bottom-0 w-2 bg-blue-500 origin-bottom rounded-full neon-pro-fast", showFrame && "animate-gpu-v")} style={{ transform: 'scaleY(0)' }} />
                 </div>
-            )}
+            </div>
 
             {/* Central Circle (Loading) */}
             <div className={clsx(
                 "relative w-[450px] h-[450px] flex items-center justify-center transition-all duration-500",
-                hideCircle && "animate-gpu-shrink pointer-events-none"
+                animStarted && "animate-gpu-shrink pointer-events-none"
             )}>
 
                 <div className="absolute inset-0 rounded-full" style={{ WebkitAppRegion: 'drag' } as any} />
                 <div className={clsx(
                     "absolute inset-4 rounded-full bg-[#0b0e14] border-2 border-blue-500/20 shadow-[0_0_60px_rgba(0,0,0,0.9)] transition-opacity duration-300",
-                    hideCircle && "opacity-0"
+                    animStarted && "opacity-0"
                 )} />
 
-                {!hideCircle && (
+                {!animStarted && (
                     <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 450 450">
                         <circle cx="225" cy="225" r={radius} fill="none" stroke="rgba(30,41,59,0.5)" strokeWidth="10" />
                         <circle
@@ -191,7 +189,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinished }) => {
 
                 <div className={clsx(
                     "relative flex flex-col items-center text-center z-10 pointer-events-none transition-opacity duration-300",
-                    hideCircle && "opacity-0"
+                    animStarted && "opacity-0"
                 )}>
                     <div className="relative mb-6">
                         <div className="absolute inset-0 bg-blue-500 rounded-2xl blur-2xl opacity-20 animate-pulse" />

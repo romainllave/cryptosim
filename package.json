@@ -1,7 +1,7 @@
 {
   "name": "sitetrading",
   "private": true,
-  "version": "0.0.34",
+  "version": "0.0.35",
   "description": "Professional Crypto Trading Simulator",
   "author": "Romain Llave",
   "type": "module",
