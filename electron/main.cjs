@@ -66,8 +66,8 @@ function createWindow() {
             dialog.showErrorBox('Erreur de chargement', `Impossible de charger l'interface : ${err.message}`);
         });
 
-        // immediate update check on prod
-        autoUpdater.checkForUpdatesAndNotify().catch(err => log(`Auto-update check failed: ${err}`));
+        // immediate update check on prod (SILENT)
+        autoUpdater.checkForUpdates().catch(err => log(`Auto-update check failed: ${err}`));
     }
 }
 
@@ -176,7 +176,7 @@ ipcMain.on('check-for-updates', () => {
         return;
     }
 
-    autoUpdater.checkForUpdatesAndNotify().then((result) => {
+    autoUpdater.checkForUpdates().then((result) => {
         // We only show a message if there's no update AND we want to inform the user (manual check)
         // But since this IPC is also called automatically by the Splash, we should avoid the dialog here.
         // The Splash Screen already handles the "not-available" status visually.
