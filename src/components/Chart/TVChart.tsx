@@ -177,5 +177,4 @@ export const TVChart: React.FC<TVChartProps> = ({
             />
         </div>
     );
-    );
 };
