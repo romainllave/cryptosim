@@ -43,113 +43,45 @@
 /* Hide scrollbar for IE, Edge and Firefox */
 .no-scrollbar {
   -ms-overflow-style: none;
-  /* IE and Edge */
   scrollbar-width: none;
-  /* Firefox */
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
+/* --- CIRCLE TO RECTANGLE MORPH ANIMATION --- */
 
-  to {
-    opacity: 1;
-  }
-}
-
-.animate-in {
-  animation-fill-mode: forwards;
-}
-
-.fade-in {
-  animation: fadeIn 1s ease-out;
-}
-
-/* --- PERFORMANCE OPTIMIZED SPLASH (GPU ONLY) --- */
-
-/* Diagonal Growth using scaleX (no layout reflow) */
-@keyframes gpu-grow-beam {
+@keyframes morph-to-rect {
   0% {
-    transform: scaleX(0);
-    opacity: 0;
+    width: 450px;
+    height: 450px;
+    border-radius: 50%;
+    opacity: 1;
   }
 
   100% {
-    transform: scaleX(1);
+    width: 1280px;
+    height: 800px;
+    border-radius: 12px;
     opacity: 1;
   }
 }
 
-/* Perimeter growth using scale */
-@keyframes gpu-beam-h {
+@keyframes fade-out-content {
   0% {
-    transform: scaleX(0);
-    opacity: 0;
-  }
-
-  100% {
-    transform: scaleX(1);
     opacity: 1;
-  }
-}
-
-@keyframes gpu-beam-v {
-  0% {
-    transform: scaleY(0);
-    opacity: 0;
-  }
-
-  100% {
-    transform: scaleY(1);
-    opacity: 1;
-  }
-}
-
-/* Smooth shrink for circle */
-@keyframes gpu-shrink-fade {
-  0% {
     transform: scale(1);
-    opacity: 1;
   }
 
   100% {
-    transform: scale(0.6);
     opacity: 0;
+    transform: scale(0.8);
   }
 }
 
-.animate-gpu-beam {
-  animation: gpu-grow-beam 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  will-change: transform, opacity;
+.animate-morph {
+  animation: morph-to-rect 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  will-change: width, height, border-radius;
 }
 
-.animate-gpu-h {
-  animation: gpu-beam-h 1s cubic-bezier(0.33, 1, 0.68, 1) forwards;
-  will-change: transform, opacity;
-}
-
-.animate-gpu-v {
-  animation: gpu-beam-v 1s cubic-bezier(0.33, 1, 0.68, 1) forwards;
-  will-change: transform, opacity;
-}
-
-.animate-gpu-shrink {
-  animation: gpu-shrink-fade 0.6s ease-in forwards;
-  will-change: transform, opacity;
-}
-
-/* LIGHT neon glow (Performance optimized) */
-.neon-pro-fast {
-  box-shadow: 0 0 20px #2563eb, 0 0 40px rgba(37, 99, 235, 0.4);
-}
-
-.neon-pro-border-fast {
-  filter: drop-shadow(0 0 10px #3b82f6);
-}
-
-/* X Beam animation - only animates scaleX from 0 to 1 */
-.animate-x-beam {
-  animation: gpu-grow-beam 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  will-change: transform;
+.animate-fade-out {
+  animation: fade-out-content 0.4s ease-out forwards;
+  will-change: opacity, transform;
 }
