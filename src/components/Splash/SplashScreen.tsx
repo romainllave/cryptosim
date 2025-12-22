@@ -50,6 +50,9 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinished }) => {
 
     useEffect(() => {
         if (window.electron && window.electron.onUpdateStatus) {
+            // Trigger check immediately
+            window.electron.checkUpdates();
+
             window.electron.onUpdateStatus((data: any) => {
                 setStatus(data);
 
@@ -58,6 +61,12 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinished }) => {
                         setStatus(prev => ({ ...prev, status: 'finishing', message: 'Prêt' }));
                         triggerAdvancedAnimation();
                     }, 1500);
+                }
+
+                // If ready (downloaded), the main process will call quitAndInstall.
+                // We should just keep showing the "Ready" status.
+                if (data.status === 'ready') {
+                    setStatus({ status: 'ready', message: 'Mise à jour prête. Redémarrage...' });
                 }
             });
 

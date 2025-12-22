@@ -66,12 +66,8 @@ function createWindow() {
             dialog.showErrorBox('Erreur de chargement', `Impossible de charger l'interface : ${err.message}`);
         });
 
-        // --- STABILITY: Optional/Delayed Update Check ---
-        // We delay it significantly to ensure the app is fully loaded.
-        setTimeout(() => {
-            log('Tentative de vérification des mises à jour automatique...');
-            autoUpdater.checkForUpdatesAndNotify().catch(err => log(`Auto-update check failed: ${err}`));
-        }, 10000);
+        // immediate update check on prod
+        autoUpdater.checkForUpdatesAndNotify().catch(err => log(`Auto-update check failed: ${err}`));
     }
 }
 
