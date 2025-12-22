@@ -40,15 +40,18 @@ process.on('unhandledRejection', (reason, promise) => {
 function createWindow() {
     log('Création de la fenêtre principale...');
     const mainWindow = new BrowserWindow({
-        width: 1280,
-        height: 800,
+        width: 450,
+        height: 450,
+        resizable: false,
+        frame: false, // Splash/Login usually frameless
+        center: true,
         webPreferences: {
             nodeIntegration: false,
             contextIsolation: true,
             preload: path.join(__dirname, 'preload.cjs'),
-            sandbox: false, // Sometimes sandbox causes issues with file loading on Windows
+            sandbox: false,
         },
-        backgroundColor: '#131722',
+        backgroundColor: '#0d1117',
         icon: path.join(__dirname, '../public/icons/icon.png'),
     });
 
@@ -124,6 +127,30 @@ autoUpdater.on('error', (err) => {
 // Get App Version
 ipcMain.handle('get-app-version', () => {
     return app.getVersion();
+});
+
+// Expand Window when loading is finished
+ipcMain.on('expand-window', () => {
+    const win = BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0];
+    if (win) {
+        log('Agrandissement de la fenêtre...');
+        win.setResizable(true);
+        win.setFullScreenable(true);
+        // We use a small timeout to let the UI update if needed
+        setTimeout(() => {
+            win.setSize(1280, 800, true); // true for animation on macOS, but we're on Windows
+            win.center();
+            // Since we set frame: false for splash, we might want to keep it false or change it?
+            // Actually, for the main app, user might want the frame back.
+            // But Electron doesn't allow changing 'frame' after window creation easily on all platforms without recreation.
+            // Let's check if we can live without frame (custom titlebar) or if we should have frame from start.
+            // If we have frame from start, the splash looks less like a "square splash".
+            // Let's stick with frame: false and I will add CSS for dragging if needed, 
+            // OR I can use win.setMenuBarVisibility(true) etc.
+            // Actually, if I want the "full app size" with standard windows buttons, I should probably have frame: true for the main app.
+            // A common trick is to have two windows, but let's try to stick to one.
+        }, 100);
+    }
 });
 
 // Manual update trigger via IPC

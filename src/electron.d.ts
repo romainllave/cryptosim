@@ -6,6 +6,7 @@ declare global {
             getVersion: () => Promise<string>;
             checkUpdates: () => void;
             onUpdateStatus: (callback: (data: any) => void) => void;
+            expandWindow: () => void;
         };
     }
 }

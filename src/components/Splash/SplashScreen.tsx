@@ -32,6 +32,12 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinished }) => {
                 if (data.status === 'not-available' || data.status === 'error') {
                     setTimeout(() => {
                         setStatus(prev => ({ ...prev, status: 'finishing', message: 'Initialisation des modules...' }));
+
+                        // Expand window before transitioning
+                        if (window.electron && window.electron.expandWindow) {
+                            window.electron.expandWindow();
+                        }
+
                         setTimeout(onFinished, 1500);
                     }, 2000);
                 }
@@ -41,6 +47,10 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinished }) => {
             const safetyTimeout = setTimeout(() => {
                 setStatus(prev => {
                     if (prev.status === 'checking') {
+                        // Expand window for safety timeout too
+                        if (window.electron && window.electron.expandWindow) {
+                            window.electron.expandWindow();
+                        }
                         return { status: 'finishing', message: 'Accès au terminal de trading...' };
                     }
                     return prev;
@@ -60,6 +70,9 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinished }) => {
 
     return (
         <div className="fixed inset-0 z-[9999] bg-[#0d1117] flex flex-col items-center justify-center text-white overflow-hidden">
+            {/* Drag region for frameless window */}
+            <div className="absolute top-0 left-0 right-0 h-16" style={{ WebkitAppRegion: 'drag' } as any} />
+
             {/* Background Animated Gradients */}
             <div className="absolute inset-0 opacity-20">
                 <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-600 rounded-full blur-[120px] animate-pulse" />
