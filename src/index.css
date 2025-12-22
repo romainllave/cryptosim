@@ -66,85 +66,10 @@
   animation: fadeIn 1s ease-out;
 }
 
-/* --- Precision Splash Animations (1280x800) --- */
+/* --- PERFORMANCE OPTIMIZED SPLASH (GPU ONLY) --- */
 
-/* Diagonal Connector Beams (Center to Corners) */
-/* Length is ~755px, Angle is 32deg */
-
-@keyframes grow-beam-tl {
-  0% {
-    width: 0;
-    opacity: 0;
-    transform: rotate(-148deg);
-  }
-
-  20% {
-    opacity: 1;
-  }
-
-  100% {
-    width: 755px;
-    opacity: 1;
-    transform: rotate(-148deg);
-  }
-}
-
-@keyframes grow-beam-tr {
-  0% {
-    width: 0;
-    opacity: 0;
-    transform: rotate(-32deg);
-  }
-
-  20% {
-    opacity: 1;
-  }
-
-  100% {
-    width: 755px;
-    opacity: 1;
-    transform: rotate(-32deg);
-  }
-}
-
-@keyframes grow-beam-bl {
-  0% {
-    width: 0;
-    opacity: 0;
-    transform: rotate(148deg);
-  }
-
-  20% {
-    opacity: 1;
-  }
-
-  100% {
-    width: 755px;
-    opacity: 1;
-    transform: rotate(148deg);
-  }
-}
-
-@keyframes grow-beam-br {
-  0% {
-    width: 0;
-    opacity: 0;
-    transform: rotate(32deg);
-  }
-
-  20% {
-    opacity: 1;
-  }
-
-  100% {
-    width: 755px;
-    opacity: 1;
-    transform: rotate(32deg);
-  }
-}
-
-/* Rectangular Perimeter Drawing */
-@keyframes beam-h {
+/* Diagonal Growth using scaleX (no layout reflow) */
+@keyframes gpu-grow-beam {
   0% {
     transform: scaleX(0);
     opacity: 0;
@@ -156,7 +81,20 @@
   }
 }
 
-@keyframes beam-v {
+/* Perimeter growth using scale */
+@keyframes gpu-beam-h {
+  0% {
+    transform: scaleX(0);
+    opacity: 0;
+  }
+
+  100% {
+    transform: scaleX(1);
+    opacity: 1;
+  }
+}
+
+@keyframes gpu-beam-v {
   0% {
     transform: scaleY(0);
     opacity: 0;
@@ -168,57 +106,44 @@
   }
 }
 
-/* Central Content Shrink */
-@keyframes shrink-fade-out {
+/* Smooth shrink for circle */
+@keyframes gpu-shrink-fade {
   0% {
     transform: scale(1);
     opacity: 1;
-    filter: blur(0);
   }
 
   100% {
     transform: scale(0.6);
     opacity: 0;
-    filter: blur(10px);
   }
 }
 
-.animate-grow-tl {
-  animation: grow-beam-tl 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+.animate-gpu-beam {
+  animation: gpu-grow-beam 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
 }
 
-.animate-grow-tr {
-  animation: grow-beam-tr 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+.animate-gpu-h {
+  animation: gpu-beam-h 1s cubic-bezier(0.33, 1, 0.68, 1) forwards;
+  will-change: transform, opacity;
 }
 
-.animate-grow-bl {
-  animation: grow-beam-bl 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+.animate-gpu-v {
+  animation: gpu-beam-v 1s cubic-bezier(0.33, 1, 0.68, 1) forwards;
+  will-change: transform, opacity;
 }
 
-.animate-grow-br {
-  animation: grow-beam-br 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+.animate-gpu-shrink {
+  animation: gpu-shrink-fade 0.6s ease-in forwards;
+  will-change: transform, opacity;
 }
 
-.animate-beam-h {
-  animation: beam-h 1.2s cubic-bezier(0.33, 1, 0.68, 1) forwards;
+/* LIGHT neon glow (Performance optimized) */
+.neon-pro-fast {
+  box-shadow: 0 0 20px #2563eb, 0 0 40px rgba(37, 99, 235, 0.4);
 }
 
-.animate-beam-v {
-  animation: beam-v 1.2s cubic-bezier(0.33, 1, 0.68, 1) forwards;
-}
-
-.animate-shrink-fade {
-  animation: shrink-fade-out 0.8s ease-in forwards;
-}
-
-/* ULTRA-PRO NEON STYLE */
-.neon-glow-pro {
-  box-shadow: 0 0 10px #2563eb,
-    0 0 30px #2563eb,
-    0 0 60px #1e40af,
-    0 0 90px #1e3a8a;
-}
-
-.neon-filter-pro {
-  filter: drop-shadow(0 0 15px #3b82f6) drop-shadow(0 0 40px #1d4ed8) drop-shadow(0 0 70px #1e3a8a);
+.neon-pro-border-fast {
+  filter: drop-shadow(0 0 10px #3b82f6);
 }
