@@ -177,16 +177,11 @@ ipcMain.on('check-for-updates', () => {
     }
 
     autoUpdater.checkForUpdatesAndNotify().then((result) => {
-        if (!result || !result.updateInfo || result.updateInfo.version === app.getVersion()) {
-            dialog.showMessageBox({
-                type: 'info',
-                title: 'Mise à jour',
-                message: 'Votre application est déjà à jour (Version ' + app.getVersion() + ') !',
-            });
-        }
+        // We only show a message if there's no update AND we want to inform the user (manual check)
+        // But since this IPC is also called automatically by the Splash, we should avoid the dialog here.
+        // The Splash Screen already handles the "not-available" status visually.
     }).catch((err) => {
-        log(`Manual check error: ${err}`);
-        dialog.showErrorBox('Erreur mise à jour', 'Impossible de vérifier les mises à jour. \n\nDétail: ' + err.message);
+        log(`Update check error: ${err}`);
     });
 });
 
