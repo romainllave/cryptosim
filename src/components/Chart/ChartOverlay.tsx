@@ -20,7 +20,7 @@ export const ChartOverlay: React.FC<ChartOverlayProps> = ({ chart, series, curre
     const [drawings, setDrawings] = useState<Drawing[]>([]);
     const [activeDrawing, setActiveDrawing] = useState<Drawing | null>(null);
     const overlayRef = useRef<SVGSVGElement>(null);
-    const [tick, setTick] = useState(0); // For re-render loop
+    const [, setTick] = useState(0); // For re-render loop
 
     // Convert Time/Price to Pixel Coordinates
     const coordinatesToPixels = (time: Time, price: number) => {
