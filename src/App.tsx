@@ -388,7 +388,7 @@ function App() {
     <div className="flex flex-col h-screen bg-background text-text-primary overflow-hidden font-sans dark:bg-[#131722] dark:text-[#d1d4dc] relative rounded-xl">
       <TitleBar isDarkMode={isDarkMode} />
       {/* Header */}
-      <header className="h-14 border-b border-border flex items-center px-4 justify-between bg-gray-50 shrink-0 dark:bg-[#1e222d] dark:border-[#2a2e39]">
+      <header className="h-14 border-b border-border flex items-center px-4 justify-between bg-transparent shrink-0 dark:border-[#2a2e39]">
         <div className="flex items-center gap-2">
           <div className="text-blue-600">
             <Activity size={24} />
