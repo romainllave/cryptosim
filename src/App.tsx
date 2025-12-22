@@ -370,7 +370,7 @@ function App() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-background text-text-primary overflow-y-auto md:overflow-hidden font-sans dark:bg-[#131722] dark:text-[#d1d4dc] animate-in fade-in duration-1000 relative">
+    <div className="flex flex-col h-screen bg-background text-text-primary overflow-y-auto md:overflow-hidden font-sans dark:bg-[#131722] dark:text-[#d1d4dc] relative">
       <TitleBar isDarkMode={isDarkMode} />
       {/* Header */}
       <header className="h-14 border-b border-border flex items-center px-4 justify-between bg-white shrink-0 dark:bg-[#1e222d] dark:border-[#2a2e39]">

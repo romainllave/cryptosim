@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { Activity, AlertCircle, RefreshCw } from 'lucide-react';
+import { Activity, RefreshCw } from 'lucide-react';
 import { clsx } from 'clsx';
 
 interface SplashScreenProps {
     onFinished: () => void;
 }
+
+type AnimStage = 'loading' | 'exploding' | 'connecting' | 'finished';
 
 export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinished }) => {
     const [status, setStatus] = useState<{
@@ -15,7 +17,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinished }) => {
     }>({ status: 'checking', message: 'Vérification...' });
 
     const [dots, setDots] = useState('');
-    const [isExpanding, setIsExpanding] = useState(false);
+    const [animStage, setAnimStage] = useState<AnimStage>('loading');
 
     useEffect(() => {
         const interval = setInterval(() => {
@@ -24,17 +26,26 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinished }) => {
         return () => clearInterval(interval);
     }, []);
 
-    const triggerFinished = () => {
-        setIsExpanding(true);
-        // Start window expansion slightly after visual expansion starts
-        setTimeout(() => {
-            if (window.electron && window.electron.expandWindow) {
-                window.electron.expandWindow();
-            }
-        }, 300);
+    const triggerAdvancedAnimation = async () => {
+        // Stage 1: Explode (Bars move to corners)
+        setAnimStage('exploding');
 
-        // Final transition to app
-        setTimeout(onFinished, 1000);
+        // Wait for scatter animation
+        await new Promise(r => setTimeout(r, 600));
+
+        // Stage 2: Connect (Bars draw the rectangle)
+        setAnimStage('connecting');
+
+        // Wait for connection animation
+        await new Promise(r => setTimeout(r, 800));
+
+        // Final expansion
+        if (window.electron && window.electron.expandWindow) {
+            window.electron.expandWindow();
+        }
+
+        setAnimStage('finished');
+        setTimeout(onFinished, 100);
     };
 
     useEffect(() => {
@@ -45,7 +56,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinished }) => {
                 if (data.status === 'not-available' || data.status === 'error') {
                     setTimeout(() => {
                         setStatus(prev => ({ ...prev, status: 'finishing', message: 'Prêt' }));
-                        triggerFinished();
+                        triggerAdvancedAnimation();
                     }, 1500);
                 }
             });
@@ -53,7 +64,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinished }) => {
             const safetyTimeout = setTimeout(() => {
                 setStatus(prev => {
                     if (prev.status === 'checking') {
-                        triggerFinished();
+                        triggerAdvancedAnimation();
                         return { status: 'finishing', message: 'Prêt' };
                     }
                     return prev;
@@ -64,7 +75,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinished }) => {
         } else {
             setTimeout(() => {
                 setStatus({ status: 'finishing', message: 'Web Version' });
-                triggerFinished();
+                triggerAdvancedAnimation();
             }, 3000);
         }
     }, [onFinished]);
@@ -77,22 +88,59 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinished }) => {
 
     return (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center overflow-hidden bg-transparent">
-            {/* Main Circular Container */}
+
+            {/* The Animated Frame (Connecting Bars) */}
+            {animStage === 'connecting' && (
+                <div className="absolute inset-0 flex items-center justify-center p-4">
+                    <div className="relative w-full h-full max-w-[400px] max-h-[400px]">
+                        {/* Top Beam */}
+                        <div className="absolute top-0 left-0 right-0 h-[2px] bg-blue-500 origin-left animate-beam-h shadow-[0_0_10px_#3b82f6]" />
+                        {/* Bottom Beam */}
+                        <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-blue-500 origin-right animate-beam-h shadow-[0_0_10px_#3b82f6]" />
+                        {/* Left Beam */}
+                        <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-blue-500 origin-top animate-beam-v shadow-[0_0_10px_#3b82f6]" />
+                        {/* Right Beam */}
+                        <div className="absolute right-0 top-0 bottom-0 w-[2px] bg-blue-500 origin-bottom animate-beam-v shadow-[0_0_10px_#3b82f6]" />
+                    </div>
+                </div>
+            )}
+
+            {/* Main Container */}
             <div className={clsx(
-                "relative w-[400px] h-[400px] flex items-center justify-center transition-all duration-700",
-                isExpanding && "scale-[5] opacity-0"
+                "relative w-[400px] h-[400px] flex items-center justify-center transition-all duration-500",
+                animStage === 'finished' && "opacity-0 scale-110"
             )}>
 
                 {/* Drag region for frameless window */}
                 <div className="absolute inset-0 rounded-full" style={{ WebkitAppRegion: 'drag' } as any} />
 
-                {/* Background Circle - The white box fix is to NOT have a background on the FULL div but only this circle */}
-                <div className="absolute inset-4 rounded-full bg-[#0d1117] shadow-[0_0_50px_rgba(0,0,0,0.8)] border border-blue-900/40" />
+                {/* 4 Points/Bars Emerging Stage */}
+                {animStage === 'exploding' && (
+                    <div className="absolute inset-0 z-20 pointer-events-none">
+                        {/* TL */}
+                        <div className="absolute w-8 h-1 bg-blue-500 -rotate-45 transition-all duration-500"
+                            style={{ top: '0', left: '0', transform: 'translate(100px, 100px) rotate(-45deg)', opacity: 1, boxShadow: '0 0 15px #3b82f6' }} />
+                        {/* TR */}
+                        <div className="absolute w-8 h-1 bg-blue-500 rotate-45 transition-all duration-500"
+                            style={{ top: '0', right: '0', transform: 'translate(-100px, 100px) rotate(45deg)', opacity: 1, boxShadow: '0 0 15px #3b82f6' }} />
+                        {/* BL */}
+                        <div className="absolute w-8 h-1 bg-blue-500 rotate-45 transition-all duration-500"
+                            style={{ bottom: '0', left: '0', transform: 'translate(100px, -100px) rotate(45deg)', opacity: 1, boxShadow: '0 0 15px #3b82f6' }} />
+                        {/* BR */}
+                        <div className="absolute w-8 h-1 bg-blue-500 -rotate-45 transition-all duration-500"
+                            style={{ bottom: '0', right: '0', transform: 'translate(-100px, -100px) rotate(-45deg)', opacity: 1, boxShadow: '0 0 15px #3b82f6' }} />
+                    </div>
+                )}
+
+                {/* Background Circle */}
+                <div className={clsx(
+                    "absolute inset-4 rounded-full bg-[#0d1117] shadow-[0_0_50px_rgba(0,0,0,0.8)] border border-blue-900/40 transition-all duration-500",
+                    animStage !== 'loading' && "opacity-0 scale-75"
+                )} />
 
                 {/* SVG Progress Circle */}
-                {!isExpanding && (
+                {animStage === 'loading' && (
                     <svg className="absolute inset-0 w-full h-full -rotate-90 transform" viewBox="0 0 400 400">
-                        {/* Background Track */}
                         <circle
                             cx="200"
                             cy="200"
@@ -101,7 +149,6 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinished }) => {
                             stroke="rgba(30, 41, 59, 0.4)"
                             strokeWidth="8"
                         />
-                        {/* Progress Bar */}
                         <circle
                             cx="200"
                             cy="200"
@@ -127,8 +174,8 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinished }) => {
 
                 {/* Center Content */}
                 <div className={clsx(
-                    "relative flex flex-col items-center justify-center text-center p-8 z-10 pointer-events-none transition-opacity duration-300",
-                    isExpanding && "opacity-0"
+                    "relative flex flex-col items-center justify-center text-center p-8 z-10 pointer-events-none transition-all duration-500",
+                    animStage !== 'loading' && "opacity-0 scale-50"
                 )}>
                     <div className="relative mb-6">
                         <div className="absolute inset-0 bg-blue-500 rounded-2xl blur-xl opacity-20 animate-pulse" />
@@ -143,11 +190,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinished }) => {
 
                     <div className="flex flex-col items-center gap-1 mt-4">
                         <div className="flex items-center gap-2 text-[10px] font-bold text-blue-400 uppercase tracking-widest">
-                            {status.status === 'error' ? (
-                                <AlertCircle size={12} className="text-red-500" />
-                            ) : (
-                                <RefreshCw size={12} className="animate-spin" />
-                            )}
+                            <RefreshCw size={12} className="animate-spin" />
                             <span>{status.message}{dots}</span>
                         </div>
                         {status.percent !== undefined && (
@@ -155,11 +198,6 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinished }) => {
                         )}
                     </div>
                 </div>
-
-                {/* Decorative particles/glow */}
-                {!isExpanding && (
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[380px] h-[380px] rounded-full border border-blue-500/5 pointer-events-none animate-ping opacity-20" />
-                )}
             </div>
         </div>
     );
