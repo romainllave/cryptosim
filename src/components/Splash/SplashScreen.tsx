@@ -101,44 +101,44 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinished }) => {
             {/* The Animated Frame (Connecting Bars) */}
             {animStage === 'connecting' && (
                 <div className="absolute inset-0 flex items-center justify-center">
-                    {/* Rectangle with 1.6:1 aspect ratio (approx 430x268) */}
-                    <div className="relative w-[430px] h-[268px]">
+                    {/* Rectangle matching full app size 1280x800 */}
+                    <div className="relative w-full h-full">
                         {/* Top Beam */}
-                        <div className="absolute top-0 left-0 right-0 h-[2px] bg-blue-500 origin-left animate-beam-h shadow-[0_0_20px_#3b82f6]" />
+                        <div className="absolute top-0 left-0 right-0 h-[2px] bg-blue-500 origin-left animate-beam-h shadow-[0_0_25px_#3b82f6]" />
                         {/* Bottom Beam */}
-                        <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-blue-500 origin-right animate-beam-h shadow-[0_0_20px_#3b82f6]" />
+                        <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-blue-500 origin-right animate-beam-h shadow-[0_0_25px_#3b82f6]" />
                         {/* Left Beam */}
-                        <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-blue-500 origin-top animate-beam-v shadow-[0_0_20px_#3b82f6]" />
+                        <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-blue-500 origin-top animate-beam-v shadow-[0_0_25px_#3b82f6]" />
                         {/* Right Beam */}
-                        <div className="absolute right-0 top-0 bottom-0 w-[2px] bg-blue-500 origin-bottom animate-beam-v shadow-[0_0_20px_#3b82f6]" />
+                        <div className="absolute right-0 top-0 bottom-0 w-[2px] bg-blue-500 origin-bottom animate-beam-v shadow-[0_0_25px_#3b82f6]" />
                     </div>
                 </div>
             )}
 
             {/* Main Container */}
             <div className={clsx(
-                "relative w-[400px] h-[400px] flex items-center justify-center transition-all duration-500",
+                "relative w-[450px] h-[450px] flex items-center justify-center transition-all duration-500",
                 animStage === 'finished' && "opacity-0 scale-110"
             )}>
 
                 {/* Drag region for frameless window */}
                 <div className="absolute inset-0 rounded-full" style={{ WebkitAppRegion: 'drag' } as any} />
 
-                {/* 4 Points/Bars Emerging Stage - Further reaches and rectangular ratio */}
+                {/* 4 Points/Bars Emerging Stage - Full Window Reaches (1280x800 area) */}
                 {animStage === 'exploding' && (
-                    <div className="absolute inset-0 z-20 pointer-events-none">
+                    <div className="absolute inset-x-0 inset-y-0 fixed z-20 pointer-events-none" style={{ left: '-415px', top: '-175px', width: '1280px', height: '800px' }}>
                         {/* TL */}
-                        <div className="absolute w-8 h-1 bg-blue-500 -rotate-45 transition-all duration-600"
-                            style={{ top: '50%', left: '50%', transform: 'translate(-215px, -134px) rotate(-45deg)', opacity: 1, boxShadow: '0 0 20px #3b82f6' }} />
+                        <div className="absolute w-8 h-1 bg-blue-500 -rotate-45 transition-all duration-700"
+                            style={{ top: '0', left: '0', transform: 'rotate(-45deg)', opacity: 1, boxShadow: '0 0 25px #3b82f6' }} />
                         {/* TR */}
-                        <div className="absolute w-8 h-1 bg-blue-500 rotate-45 transition-all duration-600"
-                            style={{ top: '50%', left: '50%', transform: 'translate(207px, -134px) rotate(45deg)', opacity: 1, boxShadow: '0 0 20px #3b82f6' }} />
+                        <div className="absolute w-8 h-1 bg-blue-500 rotate-45 transition-all duration-700"
+                            style={{ top: '0', right: '0', transform: 'rotate(45deg)', opacity: 1, boxShadow: '0 0 25px #3b82f6' }} />
                         {/* BL */}
-                        <div className="absolute w-8 h-1 bg-blue-500 rotate-45 transition-all duration-600"
-                            style={{ top: '50%', left: '50%', transform: 'translate(-215px, 130px) rotate(45deg)', opacity: 1, boxShadow: '0 0 20px #3b82f6' }} />
+                        <div className="absolute w-8 h-1 bg-blue-500 rotate-45 transition-all duration-700"
+                            style={{ bottom: '0', left: '0', transform: 'rotate(45deg)', opacity: 1, boxShadow: '0 0 25px #3b82f6' }} />
                         {/* BR */}
-                        <div className="absolute w-8 h-1 bg-blue-500 -rotate-45 transition-all duration-600"
-                            style={{ top: '50%', left: '50%', transform: 'translate(207px, 130px) rotate(-45deg)', opacity: 1, boxShadow: '0 0 20px #3b82f6' }} />
+                        <div className="absolute w-8 h-1 bg-blue-500 -rotate-45 transition-all duration-700"
+                            style={{ bottom: '0', right: '0', transform: 'rotate(-45deg)', opacity: 1, boxShadow: '0 0 25px #3b82f6' }} />
                     </div>
                 )}
 

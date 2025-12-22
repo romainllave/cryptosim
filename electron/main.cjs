@@ -40,8 +40,8 @@ process.on('unhandledRejection', (reason, promise) => {
 function createWindow() {
     log('Création de la fenêtre principale...');
     const mainWindow = new BrowserWindow({
-        width: 450,
-        height: 450,
+        width: 1280,
+        height: 800,
         resizable: false,
         frame: false,
         transparent: true,
