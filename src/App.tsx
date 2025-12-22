@@ -572,6 +572,8 @@ function App() {
                 data={candleData}
                 indicators={showSMA ? { sma: smaData } : undefined}
                 isFullScreen={isFullScreen}
+                selectedTool={isFullScreen ? selectedTool : 'cursor'}
+                onDrawingComplete={() => setSelectedTool('cursor')}
                 colors={{
                   backgroundColor: isDarkMode ? '#1e222d' : 'white',
                   textColor: isDarkMode ? '#d1d4dc' : 'black',

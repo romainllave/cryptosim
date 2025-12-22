@@ -3,6 +3,7 @@ import { createChart, ColorType, CandlestickSeries, LineSeries } from 'lightweig
 import type { IChartApi, ISeriesApi, Time } from 'lightweight-charts';
 import type { CandleData } from '../../utils/chartData';
 import type { LineData } from '../../utils/indicators';
+import { ChartOverlay } from './ChartOverlay';
 
 interface TVChartProps {
     data: CandleData[];
@@ -17,9 +18,18 @@ interface TVChartProps {
         areaBottomColor?: string;
     };
     isFullScreen?: boolean;
+    selectedTool?: string;
+    onDrawingComplete?: () => void;
 }
 
-export const TVChart: React.FC<TVChartProps> = ({ data, indicators, colors = {}, isFullScreen }) => {
+export const TVChart: React.FC<TVChartProps> = ({
+    data,
+    indicators,
+    colors = {},
+    isFullScreen,
+    selectedTool = 'cursor',
+    onDrawingComplete = () => { }
+}) => {
     const chartContainerRef = useRef<HTMLDivElement>(null);
     const chartRef = useRef<IChartApi | null>(null);
     const seriesRef = useRef<ISeriesApi<"Candlestick", Time> | null>(null);
@@ -158,6 +168,14 @@ export const TVChart: React.FC<TVChartProps> = ({ data, indicators, colors = {},
     }, [isFullScreen]);
 
     return (
-        <div ref={chartContainerRef} className="w-full h-full" />
+        <div ref={chartContainerRef} className="w-full h-full relative">
+            <ChartOverlay
+                chart={chartRef.current}
+                series={seriesRef.current}
+                currentTool={selectedTool}
+                onDrawingComplete={onDrawingComplete}
+            />
+        </div>
+    );
     );
 };
