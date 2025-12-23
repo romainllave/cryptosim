@@ -11,18 +11,25 @@ export const TitleBar: React.FC<TitleBarProps> = ({ isDarkMode }) => {
     const [isMaximized, setIsMaximized] = useState(false);
 
     useEffect(() => {
+        let timeout: NodeJS.Timeout;
         const handleMouseMove = (e: MouseEvent) => {
             // Show if mouse is in the top 20 pixels
             if (e.clientY <= 20) {
-                setIsVisible(true);
+                clearTimeout(timeout);
+                // Intentional delay to avoid accidental triggers
+                timeout = setTimeout(() => setIsVisible(true), 200);
             } else if (e.clientY > 50) {
-                // Hide if mouse moves below 50 pixels (to give some buffer)
+                // Hide if mouse moves below 50 pixels
+                clearTimeout(timeout);
                 setIsVisible(false);
             }
         };
 
         window.addEventListener('mousemove', handleMouseMove);
-        return () => window.removeEventListener('mousemove', handleMouseMove);
+        return () => {
+            window.removeEventListener('mousemove', handleMouseMove);
+            clearTimeout(timeout);
+        };
     }, []);
 
     const handleMinimize = () => {
@@ -44,7 +51,7 @@ export const TitleBar: React.FC<TitleBarProps> = ({ isDarkMode }) => {
         <div
             className={clsx(
                 "fixed top-0 left-0 right-0 h-10 z-[10000] flex items-center justify-between px-4 transition-[transform,opacity] duration-300 cubic-bezier(0.23, 1, 0.32, 1) transform will-change-transform gpu-accel",
-                isVisible ? "translate-y-0 opacity-100" : "-translate-y-full opacity-0",
+                isVisible ? "translate-y-0 opacity-100 pointer-events-auto" : "-translate-y-full opacity-0 pointer-events-none",
                 isDarkMode ? "bg-[#1e222d] text-[#d1d4dc] border-b border-[#2a2e39]" : "bg-transparent text-text-primary border-b border-border shadow-sm"
             )}
         >
