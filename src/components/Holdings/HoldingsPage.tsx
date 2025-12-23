@@ -78,7 +78,7 @@ export const HoldingsPage: React.FC<HoldingsPageProps> = ({ holdings, cryptos, o
                 <div className="max-w-6xl mx-auto space-y-6">
                     {/* Summary Cards */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div className="bg-white dark:bg-[#1e222d] p-6 rounded-2xl border border-border dark:border-[#2a2e39] shadow-sm">
+                        <div className="glass-card p-6 rounded-2xl shadow-sm">
                             <div className="flex items-center gap-4 mb-2">
                                 <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl text-blue-600 dark:text-blue-400">
                                     <Wallet size={24} />
@@ -87,7 +87,7 @@ export const HoldingsPage: React.FC<HoldingsPageProps> = ({ holdings, cryptos, o
                             </div>
                             <div className="text-2xl font-bold dark:text-[#d1d4dc]">{ownedAssets.length} Cryptos</div>
                         </div>
-                        <div className="bg-white dark:bg-[#1e222d] p-6 rounded-2xl border border-border dark:border-[#2a2e39] shadow-sm">
+                        <div className="glass-card p-6 rounded-2xl shadow-sm">
                             <div className="flex items-center gap-4 mb-2">
                                 <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-xl text-green-600 dark:text-green-400">
                                     <TrendingUp size={24} />
@@ -98,7 +98,7 @@ export const HoldingsPage: React.FC<HoldingsPageProps> = ({ holdings, cryptos, o
                                 {topPerformer ? `${topPerformer.symbol} (+${topPerformer.change24h.toFixed(2)}%)` : '-'}
                             </div>
                         </div>
-                        <div className="bg-white dark:bg-[#1e222d] p-6 rounded-2xl border border-border dark:border-[#2a2e39] shadow-sm">
+                        <div className="glass-card p-6 rounded-2xl shadow-sm">
                             <div className="flex items-center gap-4 mb-2">
                                 <div className="p-3 bg-purple-50 dark:bg-purple-900/20 rounded-xl text-purple-600 dark:text-purple-400">
                                     <Activity size={24} />
@@ -110,10 +110,10 @@ export const HoldingsPage: React.FC<HoldingsPageProps> = ({ holdings, cryptos, o
                     </div>
 
                     {/* Assets Table */}
-                    <div className="bg-white dark:bg-[#1e222d] rounded-2xl border border-border dark:border-[#2a2e39] shadow-sm overflow-hidden">
+                    <div className="glass-panel rounded-2xl shadow-sm overflow-hidden mt-8">
                         <table className="w-full text-left">
                             <thead>
-                                <tr className="border-b border-border dark:border-[#2a2e39] bg-gray-50/50 dark:bg-[#1e222d] text-xs font-semibold text-text-secondary dark:text-[#787b86] uppercase tracking-wider">
+                                <tr className="border-b border-white/10 glass-panel bg-transparent text-xs font-semibold text-text-secondary dark:text-[#787b86] uppercase tracking-wider">
                                     <th className="px-6 py-4">Nom</th>
                                     <th className="px-6 py-4">Quantité</th>
                                     <th className="px-6 py-4 text-right">Prix</th>

@@ -8,13 +8,13 @@ interface TransactionHistoryProps {
 
 export const TransactionHistory: React.FC<TransactionHistoryProps> = ({ transactions }) => {
     return (
-        <div className="flex flex-col h-full bg-white dark:bg-[#1e222d]">
-            <div className="p-3 border-b border-border dark:border-[#2a2e39] bg-gray-50 dark:bg-[#1e222d]">
+        <div className="flex flex-col h-full bg-transparent">
+            <div className="p-3 border-b border-white/10 bg-transparent">
                 <h2 className="text-sm font-semibold text-text-secondary dark:text-[#787b86] uppercase tracking-wider">Recent Transactions</h2>
             </div>
             <div className="flex-1 overflow-y-auto w-full">
                 <table className="w-full text-left border-collapse">
-                    <thead className="sticky top-0 bg-white dark:bg-[#1e222d] border-b border-border dark:border-[#2a2e39]">
+                    <thead className="sticky top-0 bg-transparent backdrop-blur-md border-b border-white/10">
                         <tr>
                             <th className="p-2 text-xs font-medium text-text-secondary dark:text-[#787b86]">Time</th>
                             <th className="p-2 text-xs font-medium text-text-secondary dark:text-[#787b86]">Type</th>

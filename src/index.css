@@ -10,11 +10,26 @@
     margin: 0;
     padding: 0;
     overflow: hidden;
+    height: 100vh;
+    width: 100vw;
   }
 
   body {
     @apply text-text-primary antialiased;
+    /* Centered Blue/White Glow Background */
+    background: radial-gradient(circle at center, rgba(37, 99, 235, 0.15) 0%, rgba(255, 255, 255, 0.05) 30%, transparent 70%),
+      linear-gradient(135deg, #0b0e14 0%, #131722 100%) !important;
   }
+}
+
+/* Glassmorphism Utilities */
+.glass-panel {
+  @apply bg-white/70 dark:bg-[#1e222d]/70 backdrop-blur-xl border border-white/20 dark:border-white/10;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
+.glass-card {
+  @apply bg-white/40 dark:bg-[#1e222d]/40 backdrop-blur-md border border-white/10;
 }
 
 /* Custom scrollbar to match TradingView */

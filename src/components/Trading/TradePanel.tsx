@@ -26,7 +26,7 @@ export const TradePanel: React.FC<TradePanelProps> = ({ crypto, balance, ownedAm
     };
 
     return (
-        <div className="flex flex-col h-full bg-white dark:bg-[#1e222d]">
+        <div className="flex flex-col h-full bg-transparent">
             <div className="p-4 border-b border-border dark:border-[#2a2e39]">
                 <h2 className="text-lg font-bold text-text-primary dark:text-[#d1d4dc] flex items-center justify-between">
                     Trade {crypto.symbol}

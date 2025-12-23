@@ -51,7 +51,7 @@ export const BotPanel: React.FC<BotPanelProps> = ({
     const isRunning = botState.status === 'RUNNING';
 
     return (
-        <div className="p-4 border-t border-border dark:border-[#2a2e39]">
+        <div className="p-4 bg-transparent">
             {/* Header */}
             <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">

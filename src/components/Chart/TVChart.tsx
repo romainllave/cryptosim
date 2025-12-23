@@ -157,12 +157,12 @@ export const TVChart: React.FC<TVChartProps> = ({
     useEffect(() => {
         if (!chartRef.current) return;
 
-        // Delay to allow CSS transition to finish (500ms in App.tsx)
+        // Delay to allow CSS transition to finish (300ms in App.tsx)
         const timer = setTimeout(() => {
             if (chartRef.current) {
                 chartRef.current.timeScale().fitContent();
             }
-        }, 550); // Matches synchronized 500ms transition + small buffer
+        }, 350); // Matches synchronized 300ms transition + small buffer
 
         return () => clearTimeout(timer);
     }, [isFullScreen]);

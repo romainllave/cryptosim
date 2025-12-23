@@ -387,10 +387,16 @@ function App() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-background text-text-primary overflow-hidden font-sans dark:bg-[#131722] dark:text-[#d1d4dc] relative rounded-xl">
+    <div className="flex flex-col h-screen bg-transparent text-text-primary overflow-hidden font-sans dark:bg-transparent dark:text-[#d1d4dc] relative rounded-xl transition-opacity duration-700">
+      {/* Central Glow Effect */}
+      <div className="fixed inset-0 pointer-events-none z-0 flex items-center justify-center overflow-hidden">
+        <div className="w-[800px] h-[800px] bg-blue-500/20 rounded-full blur-[120px] mix-blend-screen animate-pulse duration-[4000ms]" />
+        <div className="absolute w-[400px] h-[400px] bg-white/10 rounded-full blur-[80px]" />
+      </div>
+
       <TitleBar isDarkMode={isDarkMode} />
       {/* Header */}
-      <header className="h-14 border-b border-border flex items-center px-4 justify-between bg-transparent shrink-0 dark:border-[#2a2e39]">
+      <header className="h-14 border-b border-white/10 flex items-center px-4 justify-between bg-white/30 backdrop-blur-md shrink-0 dark:bg-black/20 dark:border-white/10 z-10">
         <div className="flex items-center gap-2">
           <div className="flex items-center justify-center rounded-lg overflow-hidden border border-white/10">
             <img src={logo} alt="Logo" className="w-8 h-8 object-cover" />
@@ -481,7 +487,7 @@ function App() {
           }}
         />
       ) : (
-        <div className="flex-1 flex flex-col md:flex-row min-h-0 overflow-y-visible md:overflow-hidden bg-gray-100 p-2 gap-2 dark:bg-[#131722] relative transition-[transform,opacity] duration-300 cubic-bezier(0.23, 1, 0.32, 1) will-change-transform">
+        <div className="flex-1 flex flex-col md:flex-row min-h-0 overflow-y-visible md:overflow-hidden bg-transparent p-2 gap-2 relative transition-[transform,opacity] duration-300 cubic-bezier(0.23, 1, 0.32, 1) will-change-transform z-10">
           {/* Overlay for mobile menu */}
           {isMobileMenuOpen && (
             <div
@@ -492,7 +498,7 @@ function App() {
 
           {/* Left Sidebar */}
           <div className={clsx(
-            "fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-border transform transition-[transform,opacity] duration-300 cubic-bezier(0.23, 1, 0.32, 1) xl:relative xl:translate-x-0 xl:z-auto xl:flex xl:w-1/6 xl:min-w-[240px] xl:max-w-[300px] xl:flex-none xl:rounded-xl xl:border xl:shadow-sm dark:bg-[#1e222d] dark:border-[#2a2e39] overflow-hidden will-change-transform",
+            "fixed inset-y-0 left-0 z-50 w-64 glass-panel transform transition-[transform,opacity] duration-300 cubic-bezier(0.23, 1, 0.32, 1) xl:relative xl:translate-x-0 xl:z-auto xl:flex xl:w-1/6 xl:min-w-[240px] xl:max-w-[300px] xl:flex-none xl:rounded-xl xl:border xl:shadow-sm overflow-hidden will-change-transform",
             isMobileMenuOpen ? "translate-x-0" : "-translate-x-full",
             isFullScreen && "xl:!w-0 xl:!min-w-0 xl:!max-w-0 xl:opacity-0 xl:pointer-events-none xl:!border-0"
           )}>
@@ -515,7 +521,10 @@ function App() {
           {/* Center Area */}
           <div className="flex-1 flex flex-col min-w-0 min-h-0 gap-2 transition-[transform,opacity] duration-300 cubic-bezier(0.23, 1, 0.32, 1) will-change-transform">
             {/* Chart Section */}
-            <div className="flex-none h-[400px] md:flex-1 relative border border-border bg-white rounded-xl overflow-hidden shadow-sm dark:bg-[#1e222d] dark:border-[#2a2e39]">
+            <div className={clsx(
+              "flex-none h-[400px] md:flex-1 relative glass-panel rounded-xl overflow-hidden shadow-sm transition-[height,flex,opacity,margin] duration-300 cubic-bezier(0.23, 1, 0.32, 1) will-change-[height,flex]",
+              isFullScreen && "md:!flex-1 md:!h-full"
+            )}>
               <div className="absolute top-4 left-4 z-10 flex gap-2">
                 <span className="font-bold text-xl">{selectedSymbol}USDT</span>
                 <span className="text-sm text-text-secondary mt-1 dark:text-[#787b86]">CryptoSim Pro</span>
@@ -599,7 +608,7 @@ function App() {
 
             {/* History Section */}
             <div className={clsx(
-              "bg-white rounded-xl border border-border overflow-hidden shadow-sm dark:bg-[#1e222d] dark:border-[#2a2e39] transition-[height,opacity,margin] duration-300 cubic-bezier(0.23, 1, 0.32, 1) will-change-[height,opacity]",
+              "glass-panel rounded-xl overflow-hidden shadow-sm transition-[height,opacity,margin] duration-300 cubic-bezier(0.23, 1, 0.32, 1) will-change-[height,opacity]",
               isFullScreen ? "h-0 min-h-0 md:h-0 md:min-h-0 opacity-0 mt-0 p-0 border-0 flex-0" : "flex-none h-[300px] md:h-1/3 md:min-h-[200px] opacity-100 mt-0"
             )}>
               <TransactionHistory transactions={transactions} />
@@ -608,7 +617,7 @@ function App() {
 
           {/* Right Panel */}
           <div className={clsx(
-            "fixed inset-y-0 right-0 z-50 w-72 bg-white border-l border-border transform transition-[transform,opacity] duration-300 cubic-bezier(0.23, 1, 0.32, 1) md:relative md:translate-x-0 md:z-auto md:flex md:w-1/4 md:min-w-[280px] md:max-w-[400px] md:flex-none md:rounded-xl md:border md:shadow-sm dark:bg-[#1e222d] dark:border-[#2a2e39] overflow-hidden will-change-transform",
+            "fixed inset-y-0 right-0 z-50 w-72 glass-panel transform transition-[transform,opacity] duration-300 cubic-bezier(0.23, 1, 0.32, 1) md:relative md:translate-x-0 md:z-auto md:flex md:w-1/4 md:min-w-[280px] md:max-w-[400px] md:flex-none md:rounded-xl md:border md:shadow-sm overflow-hidden will-change-transform",
             isRightPanelOpen ? "translate-x-0" : "translate-x-full",
             isFullScreen && "md:!w-0 md:!min-w-0 md:!max-w-0 md:opacity-0 md:pointer-events-none md:!border-0"
           )}>

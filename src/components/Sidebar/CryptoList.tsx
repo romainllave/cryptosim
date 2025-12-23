@@ -11,7 +11,7 @@ interface CryptoListProps {
 
 export const CryptoList: React.FC<CryptoListProps> = ({ cryptos, selectedSymbol, onSelect }) => {
     return (
-        <div className="flex flex-col h-full bg-white dark:bg-[#1e222d]">
+        <div className="flex flex-col h-full bg-transparent">
             <div className="p-3 border-b border-border dark:border-[#2a2e39]">
                 <h2 className="text-sm font-semibold text-text-secondary dark:text-[#787b86] uppercase tracking-wider">Watchlist</h2>
             </div>

@@ -11,18 +11,25 @@ export const TitleBar: React.FC<TitleBarProps> = ({ isDarkMode }) => {
     const [isMaximized, setIsMaximized] = useState(false);
 
     useEffect(() => {
+        let timeout: NodeJS.Timeout;
         const handleMouseMove = (e: MouseEvent) => {
-            // Show if mouse is in the top 20 pixels
-            if (e.clientY <= 20) {
-                setIsVisible(true);
-            } else if (e.clientY > 50) {
-                // Hide if mouse moves below 50 pixels (to give some buffer)
+            // Show if mouse is in the very top 5 pixels
+            if (e.clientY <= 5) {
+                clearTimeout(timeout);
+                // Tiny delay to ensure it's intentional
+                timeout = setTimeout(() => setIsVisible(true), 50);
+            } else if (e.clientY > 45) {
+                // Hide if mouse moves below 45 pixels
+                clearTimeout(timeout);
                 setIsVisible(false);
             }
         };
 
         window.addEventListener('mousemove', handleMouseMove);
-        return () => window.removeEventListener('mousemove', handleMouseMove);
+        return () => {
+            window.removeEventListener('mousemove', handleMouseMove);
+            clearTimeout(timeout);
+        };
     }, []);
 
     const handleMinimize = () => {
