@@ -123,7 +123,7 @@ export const HoldingsPage: React.FC<HoldingsPageProps> = ({ holdings, cryptos, o
                             </thead>
                             <tbody className="divide-y divide-border dark:divide-[#2a2e39]">
                                 {ownedAssets.map((asset) => (
-                                    <tr key={asset.symbol} className="hover:bg-gray-50 dark:hover:bg-[#2a2e39] transition-colors group">
+                                    <tr key={asset.symbol} className="hover:bg-gray-50 dark:hover:bg-[#2a2e39] transition-[background-color,transform] duration-200 cubic-bezier(0.23, 1, 0.32, 1) group gpu-accel active:scale-[0.995]">
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-3">
                                                 <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold leading-none">

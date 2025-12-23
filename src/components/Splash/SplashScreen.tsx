@@ -128,7 +128,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinished }) => {
                                 cx="225" cy="225" r={radius} fill="none"
                                 stroke="url(#splash-grad)" strokeWidth="12"
                                 strokeDasharray={circumference}
-                                style={{ strokeDashoffset, transition: 'stroke-dashoffset 0.8s ease', strokeLinecap: 'round' }}
+                                style={{ strokeDashoffset, transition: 'stroke-dashoffset 0.6s cubic-bezier(0.23, 1, 0.32, 1)', strokeLinecap: 'round' }}
                             />
                             <defs>
                                 <linearGradient id="splash-grad" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -142,13 +142,13 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinished }) => {
                     {/* Logo & Text */}
                     <div className="relative flex flex-col items-center text-center z-10 pointer-events-none">
                         <div className="mb-8">
-                            <img src={logo} alt="Logo" className="w-24 h-24 object-contain animate-pulse" />
+                            <img src={logo} alt="Logo" className="w-24 h-24 object-contain animate-pulse transform-gpu" style={{ willChange: 'opacity, transform' }} />
                         </div>
                         <h1 className="text-2xl font-black tracking-tight text-white">
                             CRYPTOSIM <span className="text-blue-400">PRO</span>
                         </h1>
                         <div className="flex items-center gap-2 mt-4 text-[10px] font-bold text-blue-400 uppercase tracking-widest">
-                            <RefreshCw size={12} className="animate-spin" />
+                            <RefreshCw size={12} className="animate-spin transform-gpu" style={{ perspective: '1000px' }} />
                             <span>{status.message}{dots}</span>
                         </div>
                     </div>

@@ -45,7 +45,7 @@ export const TradePanel: React.FC<TradePanelProps> = ({ crypto, balance, ownedAm
                 <button
                     onClick={() => setType('BUY')}
                     className={clsx(
-                        "flex-1 py-3 text-sm font-semibold transition-colors border-b-2",
+                        "flex-1 py-3 text-sm font-semibold transition-[background-color,border-color] duration-200 cubic-bezier(0.23, 1, 0.32, 1) border-b-2 gpu-accel",
                         type === 'BUY'
                             ? "text-up border-up bg-green-50 dark:bg-opacity-10 dark:bg-green-500"
                             : "text-text-secondary dark:text-[#787b86] border-transparent hover:bg-hover dark:hover:bg-[#2a2e39]"
@@ -56,7 +56,7 @@ export const TradePanel: React.FC<TradePanelProps> = ({ crypto, balance, ownedAm
                 <button
                     onClick={() => setType('SELL')}
                     className={clsx(
-                        "flex-1 py-3 text-sm font-semibold transition-colors border-b-2",
+                        "flex-1 py-3 text-sm font-semibold transition-[background-color,border-color] duration-200 cubic-bezier(0.23, 1, 0.32, 1) border-b-2 gpu-accel",
                         type === 'SELL'
                             ? "text-down border-down bg-red-50 dark:bg-opacity-10 dark:bg-red-500"
                             : "text-text-secondary dark:text-[#787b86] border-transparent hover:bg-hover dark:hover:bg-[#2a2e39]"
@@ -110,8 +110,8 @@ export const TradePanel: React.FC<TradePanelProps> = ({ crypto, balance, ownedAm
                         onClick={handleTrade}
                         disabled={amountVal <= 0 || isInsufficientFunds}
                         className={clsx(
-                            "w-full py-3 rounded font-bold text-white transition-opacity",
-                            (amountVal <= 0 || isInsufficientFunds) ? "opacity-50 cursor-not-allowed" : "hover:opacity-90",
+                            "w-full py-3 rounded font-bold text-white transition-[opacity,transform,background-color] duration-200 cubic-bezier(0.23, 1, 0.32, 1) active:scale-[0.98] gpu-accel",
+                            (amountVal <= 0 || isInsufficientFunds) ? "opacity-30 cursor-not-allowed" : "hover:brightness-110",
                             type === 'BUY' ? "bg-up" : "bg-down"
                         )}
                     >

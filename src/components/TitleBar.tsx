@@ -43,7 +43,7 @@ export const TitleBar: React.FC<TitleBarProps> = ({ isDarkMode }) => {
     return (
         <div
             className={clsx(
-                "fixed top-0 left-0 right-0 h-10 z-[10000] flex items-center justify-between px-4 transition-all duration-300 transform",
+                "fixed top-0 left-0 right-0 h-10 z-[10000] flex items-center justify-between px-4 transition-[transform,opacity] duration-300 cubic-bezier(0.23, 1, 0.32, 1) transform will-change-transform gpu-accel",
                 isVisible ? "translate-y-0 opacity-100" : "-translate-y-full opacity-0",
                 isDarkMode ? "bg-[#1e222d] text-[#d1d4dc] border-b border-[#2a2e39]" : "bg-transparent text-text-primary border-b border-border shadow-sm"
             )}

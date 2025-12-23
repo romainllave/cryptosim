@@ -21,7 +21,7 @@ export const CryptoList: React.FC<CryptoListProps> = ({ cryptos, selectedSymbol,
                         key={crypto.symbol}
                         onClick={() => onSelect(crypto.symbol)}
                         className={clsx(
-                            "flex items-center justify-between p-3 cursor-pointer transition-colors border-b border-gray-100 last:border-0 dark:border-[#2a2e39]",
+                            "flex items-center justify-between p-3 cursor-pointer transition-[background-color,transform] duration-200 cubic-bezier(0.23, 1, 0.32, 1) border-b border-gray-100 last:border-0 dark:border-[#2a2e39] gpu-accel active:scale-[0.99]",
                             selectedSymbol === crypto.symbol ? "bg-blue-50 dark:bg-[#2a2e39]" : "hover:bg-gray-50 dark:hover:bg-[#2a2e39]"
                         )}
                     >

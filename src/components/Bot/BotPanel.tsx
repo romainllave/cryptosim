@@ -59,7 +59,7 @@ export const BotPanel: React.FC<BotPanelProps> = ({
                     <h3 className="font-bold text-sm">Trading Bot 2.0</h3>
                 </div>
                 <div className={clsx(
-                    "w-3 h-3 rounded-full",
+                    "w-3 h-3 rounded-full gpu-accel",
                     isRunning ? "bg-green-500 animate-pulse" : "bg-gray-400"
                 )} />
             </div>
@@ -79,10 +79,10 @@ export const BotPanel: React.FC<BotPanelProps> = ({
             <button
                 onClick={isRunning ? onStop : onStart}
                 className={clsx(
-                    "w-full py-2.5 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 transition-all shadow-sm",
+                    "w-full py-2.5 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 transition-[background-color,transform,box-shadow] duration-200 cubic-bezier(0.23, 1, 0.32, 1) shadow-sm gpu-accel",
                     isRunning
-                        ? "bg-red-500 hover:bg-red-600 text-white"
-                        : "bg-blue-600 hover:bg-blue-700 text-white"
+                        ? "bg-red-500 hover:bg-red-600 active:scale-95 text-white"
+                        : "bg-blue-600 hover:bg-blue-700 active:scale-95 text-white"
                 )}
             >
                 {isRunning ? (
