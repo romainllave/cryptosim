@@ -190,15 +190,14 @@ function App() {
     return () => unsubscribe();
   }, []);
 
-  // Save holdings to Supabase when they change
-  const holdingsRef = useRef(holdings);
-  useEffect(() => {
-    // Skip initial empty state
-    if (Object.keys(holdings).length > 0 && holdings !== holdingsRef.current) {
-      holdingsRef.current = holdings;
-      saveHoldings(holdings);
+  // Save holdings to Supabase explicitly after manual trades
+  const updateDBHoldings = async (newHoldings: Record<string, number>) => {
+    try {
+      await saveHoldings(newHoldings);
+    } catch (error) {
+      console.error('Failed to save holdings:', error);
     }
-  }, [holdings]);
+  };
 
 
   // Subscribe to Positions from Supabase (Real-time)
@@ -336,13 +335,15 @@ function App() {
       });
     }
 
-    // Update local holdings immediately
+    // Update local holdings and DB immediately
     setHoldings(prev => {
       const current = prev[selectedSymbol] || 0;
-      return {
+      const newHoldings = {
         ...prev,
         [selectedSymbol]: type === 'BUY' ? current + amount : current - amount
       };
+      updateDBHoldings(newHoldings);
+      return newHoldings;
     });
 
     const newTx: Transaction = {

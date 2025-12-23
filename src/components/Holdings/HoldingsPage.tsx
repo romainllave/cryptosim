@@ -27,6 +27,18 @@ export const HoldingsPage: React.FC<HoldingsPageProps> = ({ holdings, cryptos, o
 
     const portfolioValue = ownedAssets.reduce((sum, asset) => sum + asset.totalValue, 0);
 
+    const topPerformer = ownedAssets.length > 0
+        ? [...ownedAssets].sort((a, b) => b.change24h - a.change24h)[0]
+        : null;
+
+    const total24hChange = ownedAssets.reduce((sum, asset) => {
+        const previousValue = asset.totalValue / (1 + asset.change24h / 100);
+        return sum + (asset.totalValue - previousValue);
+    }, 0);
+
+    const total24hChangePercent = portfolioValue > 0
+        ? (total24hChange / (portfolioValue - total24hChange)) * 100
+        : 0;
     return (
         <div className="flex-1 flex flex-col bg-gray-50 dark:bg-[#131722] overflow-hidden">
             {/* Header */}
@@ -43,11 +55,21 @@ export const HoldingsPage: React.FC<HoldingsPageProps> = ({ holdings, cryptos, o
                         <p className="text-sm text-text-secondary dark:text-[#787b86]">Gérez et suivez vos actifs en temps réel</p>
                     </div>
                 </div>
-                <div className="text-right">
-                    <div className="text-xs text-text-secondary dark:text-[#787b86] uppercase tracking-wider font-semibold">Valeur Totale Estimmée</div>
+                <div className="text-right flex flex-col items-end">
+                    <div className="text-xs text-text-secondary dark:text-[#787b86] uppercase tracking-wider font-semibold">Valeur Totale Estimée</div>
                     <div className="text-3xl font-black text-blue-600 dark:text-blue-400">
                         {portfolioValue.toLocaleString('fr-FR', { style: 'currency', currency: 'USD' })}
                     </div>
+                    {ownedAssets.length > 0 && (
+                        <div className={clsx(
+                            "text-sm font-bold flex items-center gap-1",
+                            total24hChange >= 0 ? "text-up" : "text-down"
+                        )}>
+                            {total24hChange >= 0 ? "+" : ""}
+                            {total24hChange.toLocaleString('fr-FR', { style: 'currency', currency: 'USD' })}
+                            ({total24hChangePercent.toFixed(2)}%)
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -70,10 +92,10 @@ export const HoldingsPage: React.FC<HoldingsPageProps> = ({ holdings, cryptos, o
                                 <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-xl text-green-600 dark:text-green-400">
                                     <TrendingUp size={24} />
                                 </div>
-                                <span className="text-sm font-medium text-text-secondary dark:text-[#787b86]">Top Performance</span>
+                                <span className="text-sm font-medium text-text-secondary dark:text-[#787b86]">Top Performance (24h)</span>
                             </div>
-                            <div className="text-2xl font-bold text-up">
-                                {ownedAssets.length > 0 ? ownedAssets[0].symbol : '-'}
+                            <div className={clsx("text-2xl font-bold", topPerformer && topPerformer.change24h >= 0 ? "text-up" : "text-down")}>
+                                {topPerformer ? `${topPerformer.symbol} (+${topPerformer.change24h.toFixed(2)}%)` : '-'}
                             </div>
                         </div>
                         <div className="bg-white dark:bg-[#1e222d] p-6 rounded-2xl border border-border dark:border-[#2a2e39] shadow-sm">

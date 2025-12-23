@@ -146,3 +146,17 @@ VALUES
   ('ema', true)
 ON CONFLICT (strategy_name) DO NOTHING;
 
+-- Holdings Table
+CREATE TABLE IF NOT EXISTS holdings (
+    symbol TEXT PRIMARY KEY,
+    amount DECIMAL NOT NULL DEFAULT 0,
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Enable RLS for holdings
+ALTER TABLE holdings ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow all for holdings" ON holdings FOR ALL USING (true) WITH CHECK (true);
+
+-- Enable Realtime for holdings
+ALTER PUBLICATION supabase_realtime ADD TABLE holdings;
+

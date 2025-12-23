@@ -20,7 +20,9 @@ import {
     savePosition,
     deletePosition,
     getUserSettings,
-    subscribeToUserSettings
+    subscribeToUserSettings,
+    getHoldings,
+    saveHoldings
 } from '../services/supabase';
 import type { DBPosition } from '../services/supabase';
 import type { BotCommand } from '../services/supabase';
@@ -111,7 +113,11 @@ async function main() {
     let lastBuyPrice: number | null = null; // Track entry price for profit calc
     let lastOpportunityAlertTime: number = 0; // Cooldown for opportunity alerts
     const OPPORTUNITY_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes cooldown
+    let holdings: Record<string, number> = {};
 
+    // Load initial holdings
+    holdings = await getHoldings();
+    console.log('📦 Loaded holdings:', holdings);
     // Helper to switch symbol
     const switchSymbol = async (newSymbol: string) => {
         if (currentSymbol === newSymbol && candles.length > 0) return;
@@ -265,6 +271,13 @@ async function main() {
         }
 
         await updateBalance(newBalance);
+
+        // 4. Update Holdings
+        const currentAmount = holdings[bot.getConfig().symbol] || 0;
+        const newAmount = type === 'BUY' ? currentAmount + tradeAmount : currentAmount - tradeAmount;
+        holdings[bot.getConfig().symbol] = newAmount;
+        await saveHoldings(holdings);
+
         log('success', `💰 Balance updated: ${newBalance.toFixed(2)} USDT`);
         if (type === 'BUY') {
             lastBuyPrice = price;
@@ -301,7 +314,7 @@ async function main() {
 
         log('success', `✅ Trade Confirmed: ${type}`);
 
-        // 4. Save Trade
+        // 5. Save Trade
         saveTrade({
             type,
             symbol: bot.getConfig().symbol,
@@ -312,7 +325,7 @@ async function main() {
         }).then(() => log('success', '💾 Trade saved to DB'))
             .catch(err => log('error', `❌ Error saving trade: ${err.message}`));
 
-        // 5. Update Position Persistence
+        // 6. Update Position Persistence
         if (type === 'BUY') {
             await savePosition({
                 id: Math.random().toString(36).substring(7), // Fallback if position object not passed
