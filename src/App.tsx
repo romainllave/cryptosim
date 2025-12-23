@@ -390,13 +390,13 @@ function App() {
     <div className="flex flex-col h-screen bg-transparent text-text-primary overflow-hidden font-sans dark:bg-transparent dark:text-[#d1d4dc] relative rounded-xl transition-opacity duration-700">
       {/* Central Glow Effect */}
       <div className="fixed inset-0 pointer-events-none z-0 flex items-center justify-center overflow-hidden">
-        <div className="w-[800px] h-[800px] bg-blue-500/20 rounded-full blur-[120px] mix-blend-screen animate-pulse duration-[4000ms]" />
-        <div className="absolute w-[400px] h-[400px] bg-white/10 rounded-full blur-[80px]" />
+        <div className="w-[600px] h-[600px] bg-blue-500/10 rounded-full blur-[100px] animate-pulse duration-[6000ms]" />
+        <div className="absolute w-[300px] h-[300px] bg-blue-400/5 rounded-full blur-[60px]" />
       </div>
 
       <TitleBar isDarkMode={isDarkMode} />
       {/* Header */}
-      <header className="h-14 border-b border-white/10 flex items-center px-4 justify-between bg-white/30 backdrop-blur-md shrink-0 dark:bg-black/20 dark:border-white/10 z-10">
+      <header className="h-14 border-b border-white/5 flex items-center px-4 justify-between bg-black/5 backdrop-blur-3xl shrink-0 dark:bg-black/20 dark:border-white/5 z-10">
         <div className="flex items-center gap-2">
           <div className="flex items-center justify-center rounded-lg overflow-hidden border border-white/10">
             <img src={logo} alt="Logo" className="w-8 h-8 object-cover" />

@@ -16,20 +16,20 @@
 
   body {
     @apply text-text-primary antialiased;
-    /* Centered Blue/White Glow Background */
-    background: radial-gradient(circle at center, rgba(37, 99, 235, 0.15) 0%, rgba(255, 255, 255, 0.05) 30%, transparent 70%),
+    /* Subtle Centered Blue Glow Background */
+    background: radial-gradient(circle at center, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.02) 40%, transparent 80%),
       linear-gradient(135deg, #0b0e14 0%, #131722 100%) !important;
   }
 }
 
-/* Glassmorphism Utilities */
+/* Subtler Glassmorphism Utilities */
 .glass-panel {
-  @apply bg-white/70 dark:bg-[#1e222d]/70 backdrop-blur-xl border border-white/20 dark:border-white/10;
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  @apply bg-black/40 backdrop-blur-3xl border border-white/5;
+  box-shadow: 0 4px 24px 0 rgba(0, 0, 0, 0.2);
 }
 
 .glass-card {
-  @apply bg-white/40 dark:bg-[#1e222d]/40 backdrop-blur-md border border-white/10;
+  @apply bg-black/20 backdrop-blur-2xl border border-white/5;
 }
 
 /* Custom scrollbar to match TradingView */
